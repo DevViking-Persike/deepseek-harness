@@ -1,5 +1,5 @@
 /**
- * Registration: the General row, the settings section, the new-session chip,
+ * Registration: the General row, the settings section, the composer chip,
  * and the header label all come from one apply, and each defers until the slot
  * it fills has been declared. A pushed settings change refreshes the surfaces
  * that are already showing, so a default set from one converges the other.
@@ -139,7 +139,7 @@ function declareConversation(slots: SlotRegistry): () => void {
   return slots.register({
     name: 'conversation',
     children: {
-      'conversation.hero.agentPreset': { kind: 'single', scope: 'root' },
+      'conversation.input.left': { kind: 'list', scope: 'session' },
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
     },
   } as never, () => null)
@@ -302,7 +302,7 @@ describe('ui-agent-preset apply', () => {
     expect(calls.length - before).toBe(1)
   })
 
-  it('registers the new-session chip and the header label, and drops both on disposal', async () => {
+  it('registers the composer chip and the header label, and drops both on disposal', async () => {
     const { ctx, slots } = await bench()
     declareRoot(slots)
     const conversation = declareConversation(slots)
@@ -312,13 +312,14 @@ describe('ui-agent-preset apply', () => {
     const fiber = ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'workspaces'], apply })
     await fiber.await()
 
-    const chip = slots.entries('conversation.hero.agentPreset')[0]!
+    const chip = slots.entries('conversation.input.left')[0]!
     expect(chip.component).toBe(AgentPresetSeat)
+    expect(chip.options).toMatchObject({ id: 'agent-preset', order: -10 })
     const label = slots.entries('conversation.session.header.actions')[0]!
     expect(label.component).toBe(AgentPresetLabel)
     expect(label.options).toMatchObject({ id: 'agent-preset', order: -10 })
     await fiber.dispose()
-    expect(slots.entries('conversation.hero.agentPreset')).toHaveLength(0)
+    expect(slots.entries('conversation.input.left')).toHaveLength(0)
     expect(slots.entries('conversation.session.header.actions')).toHaveLength(0)
     expect(slots.entries('settings.section')).toHaveLength(0)
     conversation()
@@ -333,7 +334,7 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('workspaces', workspacesDouble() as never)
     await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'workspaces'], apply }).await()
 
-    const chip = slots.entries('conversation.hero.agentPreset')[0]!
+    const chip = slots.entries('conversation.input.left')[0]!
     const seat = (chip.inject as unknown as () => AgentPresetSeatInjected)()
     await seat.load()
     expect(seat.hooks.agentPresetSeat.getSnapshot().current).toBe('standard')
@@ -374,7 +375,7 @@ describe('ui-agent-preset apply', () => {
     expect(state.byId.s1.agentPreset).toBe('minimal')
   })
 
-  it('offers a just-authored preset on the new-session chip', async () => {
+  it('offers a just-authored preset on the composer chip', async () => {
     const { ctx, slots } = await bench()
     declareRoot(slots)
     const conversation = declareConversation(slots)
@@ -383,7 +384,7 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('workspaces', workspacesDouble() as never)
     await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'workspaces'], apply }).await()
 
-    const chip = slots.entries('conversation.hero.agentPreset')[0]!
+    const chip = slots.entries('conversation.input.left')[0]!
     const seat = (chip.inject as unknown as () => AgentPresetSeatInjected)()
     await seat.load()
     expect(seat.hooks.agentPresetSeat.getSnapshot().options.map(option => option.id)).toEqual(['standard'])
@@ -397,7 +398,7 @@ describe('ui-agent-preset apply', () => {
 
     // Authoring copies a directory rather than writing a setting, so nothing
     // on the wire announces it: a preset created to be used must appear on
-    // the one screen that starts sessions, without a reload.
+    // the one control that composes the next session, without a reload.
     await vi.waitFor(() => {
       expect(seat.hooks.agentPresetSeat.getSnapshot().options.map(option => option.id)).toEqual(['standard', 'mine'])
     })
@@ -417,11 +418,12 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('sessions', sessions as never)
     ctx.provide('workspaces', workspacesDouble() as never)
     await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'workspaces'], apply }).await()
-    const chip = (slots.entries('conversation.hero.agentPreset')[0]!
+    const chip = (slots.entries('conversation.input.left')[0]!
       .inject as unknown as () => AgentPresetSeatInjected)()
 
     await chip.load()
-    // Picked on the hero screen, where there is no session yet.
+    // Picked while no session is current yet — the composer is inert and the
+    // workspace connect that produces the session has not run.
     await chip.select('minimal')
     expect(calls).not.toContain('select:minimal')
 
@@ -445,7 +447,7 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('sessions', sessions as never)
     ctx.provide('workspaces', workspacesDouble() as never)
     await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'workspaces'], apply }).await()
-    const chip = (slots.entries('conversation.hero.agentPreset')[0]!
+    const chip = (slots.entries('conversation.input.left')[0]!
       .inject as unknown as () => AgentPresetSeatInjected)()
 
     await chip.load()
@@ -469,7 +471,7 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('sessions', sessions as never)
     ctx.provide('workspaces', workspacesDouble() as never)
     await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'workspaces'], apply }).await()
-    const chip = (slots.entries('conversation.hero.agentPreset')[0]!
+    const chip = (slots.entries('conversation.input.left')[0]!
       .inject as unknown as () => AgentPresetSeatInjected)()
 
     await chip.load()
@@ -505,6 +507,30 @@ describe('ui-agent-preset apply', () => {
     expect(label.hooks.agentPresets.getSnapshot().options).toEqual([{ id: 'standard', trust: 'system' }])
   })
 
+  it('switches a started session in place through the header selector', async () => {
+    const { ctx, slots, calls } = await bench()
+    declareRoot(slots)
+    declareConversation(slots)
+    ctx.provide('conversation', {} as never)
+    const state = { current: 's1', byId: { s1: { id: 's1', blank: false, agentPreset: 'standard' } } }
+    ctx.provide('sessions', sessionsDouble(state) as never)
+    ctx.provide('workspaces', workspacesDouble() as never)
+    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'workspaces'], apply }).await()
+    const label = (slots.entries('conversation.session.header.actions')[0]!
+      .inject as unknown as () => AgentPresetLabelInjected)()
+    calls.length = 0
+
+    const confirmed = await label.switchTo('s1', 'minimal')
+
+    // The header recomposes the SAME session — one select call, the summary
+    // row adopts the confirmed preset, and the session stays current.
+    expect(confirmed).toBe('minimal')
+    expect(calls).toEqual(['select:minimal'])
+    expect(state.current).toBe('s1')
+    expect(state.byId.s1?.agentPreset).toBe('minimal')
+    expect(state.byId.s1?.blank).toBe(false)
+  })
+
   it('stages the creator preset and starts a session from the section', async () => {
     const { ctx, slots } = await bench()
     declareRoot(slots)
@@ -515,7 +541,7 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('workspaces', workspaces as never)
     await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'workspaces'], apply }).await()
     const section = (slots.entries('settings.section')[0]!.inject as unknown as () => AgentPresetSectionInjected)()
-    const seat = (slots.entries('conversation.hero.agentPreset')[0]!
+    const seat = (slots.entries('conversation.input.left')[0]!
       .inject as unknown as () => AgentPresetSeatInjected)()
 
     section.startCreatorDraft?.()
@@ -552,7 +578,7 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('workspaces', workspacesDouble() as never)
     await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'workspaces'], apply }).await()
     const section = (slots.entries('settings.section')[0]!.inject as unknown as () => AgentPresetSectionInjected)()
-    const seat = (slots.entries('conversation.hero.agentPreset')[0]!
+    const seat = (slots.entries('conversation.input.left')[0]!
       .inject as unknown as () => AgentPresetSeatInjected)()
 
     section.startCreatorDraft?.()

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 /**
  * The three conversation-adjacent surfaces: the General-settings row naming the
- * default for later sessions, the new-session chip naming the next one's, and
- * the session header's read-only label. The split is the host's rule — a
+ * default for later sessions, the composer chip naming the blank session's,
+ * and the session header's read-only label. The split is the host's rule — a
  * session's history is produced under its preset's tools, so the choice is
- * only ever offered before one starts.
+ * only ever offered before one starts, and the two session-bound surfaces swap
+ * on that same `blank` bit rather than overlapping.
  */
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -55,7 +56,7 @@ function renderRow(state: Partial<AgentPresetSettingsState> = {}) {
   return actions
 }
 
-function renderSeat(state: Partial<AgentPresetSeatState> = {}) {
+function renderSeat(state: Partial<AgentPresetSeatState> = {}, blank = true) {
   const store = createSnapshotStore<AgentPresetSeatState>({ ...SEAT_READY, ...state })
   const actions = {
     load: vi.fn(() => Promise.resolve()),
@@ -64,6 +65,8 @@ function renderSeat(state: Partial<AgentPresetSeatState> = {}) {
   }
   render(<AgentPresetSeat {...({
     ...actions,
+    // The composer's InputZone owner share; the chip reads only `blank` off it.
+    session: { blank },
     useAgentPresetSeat: bindSnapshotSelector(store),
     t: (key: keyof typeof en) => en[key],
   } as unknown as AgentPresetSeatProps)} />)
@@ -80,14 +83,16 @@ function renderLabel(
   })
   const sessions = createSnapshotStore({ byId: summary === undefined ? {} : { s1: summary } })
   const load = vi.fn(() => Promise.resolve())
+  const switchTo = vi.fn(() => Promise.resolve('cordis'))
   const view = render(<AgentPresetLabel {...({
     load,
+    switchTo,
     sessionId: 's1',
     useSessions: bindSnapshotSelector(sessions),
     useAgentPresets: bindSnapshotSelector(store),
     t: (key: keyof typeof en) => en[key],
   } as unknown as AgentPresetLabelProps)} />)
-  return { load, view }
+  return { load, switchTo, view }
 }
 
 describe('the General-settings row', () => {
@@ -200,7 +205,7 @@ describe('the General-settings row', () => {
   })
 })
 
-describe('the new-session chip', () => {
+describe('the composer chip', () => {
   it('reads the roster once and shows the staged preset by name', async () => {
     const actions = renderSeat()
 
@@ -265,6 +270,15 @@ describe('the new-session chip', () => {
 
     renderSeat({ current: '' })
     expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('leaves the tool row once the session has started, without reading the roster', async () => {
+    // The host refuses to recompose a started session, so the chip does not
+    // linger as a disabled control — the header label reports it from there.
+    const actions = renderSeat({}, false)
+
+    expect(screen.queryByRole('button')).toBeNull()
+    await waitFor(() => { expect(actions.load).not.toHaveBeenCalled() })
   })
 
   it('closes on an outside dismissal', () => {
@@ -365,20 +379,51 @@ describe('the chip introduce cue', () => {
   })
 })
 
-describe('the session-header label', () => {
-  it('names the preset the session runs, and never offers a switch', async () => {
-    const { load } = renderLabel({ blank: false, agentPreset: 'standard' })
+describe('the session-header selector', () => {
+  it('names the preset the session runs and continues under a different one', async () => {
+    const { load, switchTo } = renderLabel({ blank: false, agentPreset: 'standard' }, {
+      options: [
+        ...SEAT_READY.options,
+        { id: 'cordis', trust: 'system', name: '创造模式', description: en.presetCordisDescription },
+      ],
+    })
 
     await waitFor(() => { expect(load).toHaveBeenCalledTimes(1) })
-    // A control here would promise a switch the host refuses outright.
-    expect(screen.queryByRole('button')).toBeNull()
-    expect(screen.getByTitle(en.presetStandardDescription).textContent).toBe(en.presetStandardName)
+    // The trigger names what the session runs; the menu continues the
+    // conversation under another composition, it never claims an in-place swap.
+    expect(screen.getByRole('button').textContent).toContain(en.presetStandardName)
+
+    fireEvent.click(screen.getByRole('button'))
+    // The item shows the Creator mode description, which the trigger never
+    // carries, so the click addresses the menu row and not the button.
+    fireEvent.click(screen.getByText(en.presetCordisDescription))
+
+    await waitFor(() => { expect(switchTo).toHaveBeenCalledWith('s1', 'cordis') })
   })
 
-  it('falls back to the id, and to the generic hint, when metadata is absent', () => {
-    renderLabel({ blank: true, agentPreset: 'mine' })
+  it('treats picking the current preset as a no-op', async () => {
+    const { switchTo } = renderLabel({ blank: false, agentPreset: 'standard' })
 
-    expect(screen.getByTitle(en.headerHint).textContent).toBe('mine')
+    fireEvent.click(screen.getByRole('button'))
+    fireEvent.click(screen.getByText(en.presetStandardDescription))
+
+    expect(switchTo).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the id, and to the continuation hint, when metadata is absent', () => {
+    renderLabel({ blank: false, agentPreset: 'mine' })
+
+    expect(screen.getByTitle(en.headerMenuHint).textContent).toContain('mine')
+  })
+
+  it('stays out of the header while the session is blank, so the chip is alone', async () => {
+    // The composer chip is showing the same session's preset as a live
+    // selector; a second control beside it would read as a stale answer.
+    const blank = renderLabel({ blank: true, agentPreset: 'standard' })
+
+    expect(blank.view.container.firstChild).toBeNull()
+    await act(async () => { await Promise.resolve() })
+    expect(blank.load).not.toHaveBeenCalled()
   })
 
   it('shows the id until the roster resolves it', () => {
@@ -386,11 +431,11 @@ describe('the session-header label', () => {
 
     // The session's own summary is the authority on which preset it runs; the
     // roster only supplies the display name, and its arrival is a later frame.
-    expect(screen.getByTitle(en.headerHint).textContent).toBe('standard')
+    expect(screen.getByTitle(en.headerMenuHint).textContent).toContain('standard')
   })
 
   it('renders nothing, and reads no roster, when the session records no preset', async () => {
-    const absent = renderLabel({ blank: true })
+    const absent = renderLabel({ blank: false })
     expect(absent.view.container.firstChild).toBeNull()
     cleanup()
 

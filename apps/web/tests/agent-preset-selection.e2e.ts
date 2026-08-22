@@ -193,11 +193,14 @@ describe('web e2e: agent-preset selection', () => {
     await scaffold?.close()
   })
 
-  it('offers the chip on the new-session screen, beside the workspace picker', async () => {
+  it('offers the chip in the composer tool row while the session is blank', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-agent-preset-hero'))
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
 
-    const snapshot = await captureStableAria(page, '[class*="heroWorkspaceRow"]', scaffold.workspaceCwd)
+    // The composer card, not the hero workspace row: the chip is a
+    // `conversation.input.left` entry, so the tool row is what proves it is
+    // offered beside the access-mode and model controls it composes.
+    const snapshot = await captureStableAria(page, '[class*="card"]', scaffold.workspaceCwd)
 
     await compareOrRefreshGolden(HERO_EXPECTED, snapshot, MODE)
     // The chip opens on the deployment default, by the name that preset

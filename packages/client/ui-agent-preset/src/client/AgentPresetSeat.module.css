@@ -1,15 +1,15 @@
-/* Agent-preset chip on the new-session screen, beside the workspace picker.
-   Geometry mirrors HeroShell's .workspace so the two read as one row. */
+/* Agent-preset chip in the composer's tool row, beside the access-mode and
+   plan chrome. Geometry mirrors those pill chips so the row reads as one set
+   of controls. */
 
 .seat {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  max-width: min(100%, 240px);
-  min-height: 28px;
-  padding: 0 8px;
+  max-width: min(100%, 200px);
+  padding: 2px 8px;
   border: none;
-  border-radius: 16px;
+  border-radius: 999px;
   background: transparent;
   color: var(--dsw-alias-label-primary);
   font-size: 13px;

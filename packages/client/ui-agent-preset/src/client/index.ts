@@ -1,14 +1,16 @@
 /**
  * Agent-preset surface plugin, browser half — four surfaces over one roster:
- * a General-settings row for the default preset, a chip on the new-session
- * screen for the session about to start, a read-only label in the session
+ * a General-settings row for the default preset, a chip in the composer's tool
+ * row for the blank session about to start, a read-only label in the session
  * header, and a settings section that manages the roster (copy, delete,
  * default, and the way into a preset's own files).
  *
  * A running session keeps the composition it began with (the host refuses to
- * adopt an existing session under a different preset). That is what splits
- * the choice from the display: the General row and the hero chip are both
- * before-the-fact, while the header only reports what a session already runs.
+ * adopt an existing session under a different preset). That is what splits the
+ * choice from the display, and it splits them in ONE place: the composer chip
+ * renders while the session is blank and the header label takes over the
+ * moment it is not, so the two never show at once. The General row is the
+ * before-the-fact default for sessions not yet created.
  */
 
 import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
@@ -55,8 +57,8 @@ export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope
 export function apply(ctx: ClientContext): void {
   const { api } = ctx.get('connection') as ConnectionHandle
   const controller = new AgentPresetSettingsController(api, ctx.settingsScope.describe())
-  // One roster, four surfaces. The chip is registered in a later scope, so it
-  // subscribes here rather than being reached from this one.
+  // One roster, four surfaces. The composer chip is registered in a later
+  // scope, so it subscribes here rather than being reached from this one.
   const rosterReaders = new Set<() => void>()
   const section = new AgentPresetSectionController(api, () => {
     void controller.load()
@@ -97,7 +99,7 @@ export function apply(ctx: ClientContext): void {
   // render and simply hides the button while no flow exists.
   let creatorDraft: (() => void) | undefined
 
-  // The new-session chip and the header label: one controller, because the
+  // The composer chip and the header label: one controller, because the
   // staged choice belongs to the flow rather than to any one session.
   ctx.inject(['slots', 'conversation', 'sessions', 'workspaces'], (scope: ClientContext) => {
     const api = (scope.get('connection') as ConnectionHandle).api
@@ -125,6 +127,13 @@ export function apply(ctx: ClientContext): void {
     const labelInjected = (): AgentPresetLabelInjected => ({
       hooks: { agentPresets: controller.store },
       load: () => controller.load(),
+      switchTo: async (sessionId, agentPreset) => {
+        const response = await api.agentPresets.select({ sessionId: sessionId as never, agentPreset })
+        if (!response.result.ok) throw new Error(response.result.error.message)
+        const confirmed = response.result.value.agentPreset
+        scope.sessions.noteAgentPreset(sessionId as never, confirmed)
+        return confirmed
+      },
     })
 
     scope.effect(() => {
@@ -163,7 +172,11 @@ export function apply(ctx: ClientContext): void {
         scope.workspaces.startSession()
       }
       const chip = scope.slots.register({
-        name: 'conversation.hero.agentPreset',
+        name: 'conversation.input.left',
+        id: 'agent-preset',
+        // Ahead of any later tool-row entry: the composition is what the rest
+        // of the row's controls operate inside.
+        order: -10,
         locale: 'settings.agentPreset',
         inject: seatInjected,
       }, AgentPresetSeat)

@@ -494,9 +494,9 @@ describe('ConversationRoot resident composer', () => {
     const chip = b.view.getByRole('button', { name: '选择工作区' })
     expect((chip as HTMLButtonElement).disabled).toBe(false)
     expect(b.slotCalls).toContain('conversation.hero.workspace')
-    // The agent-preset chip sits in the same row, for the same reason: both
-    // choices are only open before the first message.
-    expect(b.slotCalls).toContain('conversation.hero.agentPreset')
+    // The agent-preset choice is open for the same reason but sits in the
+    // composer's tool row, which the blank session renders too.
+    expect(b.slotCalls).toContain('conversation.input.left')
   })
 
   it('prompt failure renders the promptError strip (ordinary failure, no transaction UI)', () => {

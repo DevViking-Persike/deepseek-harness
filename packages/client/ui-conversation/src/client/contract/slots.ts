@@ -171,12 +171,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * package's `conversation` entry; the shell supplies a fish fallback.
      */
     'conversation.hero.brand.mark': { kind: 'single'; scope: 'root'; owner: HeroBrandMarkOwnerProps }
-    /**
-     * The agent-preset chip beside the workspace picker on the new-session
-     * screen. Root scope: no session exists yet, so the choice is staged for
-     * the next one rather than applied to a current one.
-     */
-    'conversation.hero.agentPreset': { kind: 'single'; scope: 'root'; owner: HeroAgentPresetOwnerProps }
     // 'conversation.input.overlay' merges in ui-input-trigger (the dependency
     // direction is the hard constraint — ui-input-trigger cannot import
     // this package, while this package's input contract already imports
@@ -209,6 +203,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * it. Same {@link InputZone} owner share; use `.right` for a control that
      * belongs next to the send button, and the docks for anything taller than
      * one row.
+     *
+     * An entry whose choice is only open before the conversation starts reads
+     * `session.blank` off the owner share and returns null once it flips —
+     * the shipped agent-preset chip does exactly that, handing the display to
+     * the session header's read-only label.
      */
     'conversation.input.left': { kind: 'list'; scope: 'session'; owner: InputZone }
     /**
@@ -278,12 +277,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     useInput: MaybeSnapshotSelectorHook<InputState>
     inputActions: InputActions | undefined
   }
-}
-
-/** Owner share of the hero agent-preset chip: the shell supplies nothing. */
-export interface HeroAgentPresetOwnerProps {
-  /** Marker field: the chip owns its own roster, staging, and menu state. */
-  children?: never
 }
 
 /** Owner share of the strict session content seat. */
@@ -625,7 +618,6 @@ export type ConversationSlotProps =
     | 'conversation.input.left' | 'conversation.input.right'
     | 'conversation.hero.brand.mark'
     | 'conversation.hero.workspace'
-    | 'conversation.hero.agentPreset'
   >
   & InjectFace<ConversationInjected>
   & PropsLocale<'conversation'>

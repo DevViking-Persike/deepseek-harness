@@ -1,28 +1,29 @@
 /**
- * The agent-preset chip on the new-session screen, beside the workspace
- * picker.
+ * The agent-preset chip in the composer's tool row, beside the access-mode and
+ * plan chrome.
  *
- * It lives here rather than in the composer because the choice is only
- * available before a conversation starts: once a turn has run, the session's
- * history was produced under that preset's tools and the host refuses to swap
- * them. A control that spends most of its life disabled belongs on the screen
- * where it still works.
+ * It renders only while the current session is still blank: once a turn has
+ * run, the session's history was produced under that preset's tools and the
+ * host refuses to swap them, so the chip unmounts and the session header's
+ * read-only label ({@link AgentPresetLabel}) takes over the display. Putting
+ * the choice in the composer keeps it where the user is about to type instead
+ * of on separate hero chrome they have already scrolled past mentally.
  *
  * The menu opens on the staged choice, which starts as the deployment default.
- * Picking stages; the choice reaches a session when one becomes current.
+ * Picking stages; the choice reaches the blank session it is mounted over.
  */
 
 import { useEffect, useState } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { IconAgentPresetOutline16, IconChevronDownOutline14, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
-// Type-only: pulls the ui-conversation SlotMap merge (the hero seat).
+// Type-only: pulls the ui-conversation SlotMap merge (the composer tool row).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { AgentPresetSeatState } from './seat-store.ts'
 import { presetDisplayText } from './locales.ts'
 import css from './AgentPresetSeat.module.css'
 
-/** Registration-side business face for the hero chip. */
+/** Registration-side business face for the composer chip. */
 export interface AgentPresetSeatInjected {
   hooks: {
     /** Seat snapshot bound by the renderer as useAgentPresetSeat. */
@@ -59,22 +60,26 @@ function introStaggerMs(count: number): number {
 
 /** Full component props. */
 export type AgentPresetSeatProps =
-  PropsRuntime<'conversation.hero.agentPreset'>
+  PropsRuntime<'conversation.input.left'>
   & PropsLocale<'settings.agentPreset'>
   & InjectFace<AgentPresetSeatInjected>
 
 /**
- * Render the new-session agent-preset chip.
+ * Render the blank-session agent-preset chip inside the composer's tool row.
  * @param props - composed slot props.
- * @returns the chip, or null when the deployment composes no presets.
+ * @returns the chip, or null once the session has started or when the
+ * deployment composes no presets.
  */
-export function AgentPresetSeat({ load, select, introduced, useAgentPresetSeat, t }: AgentPresetSeatProps) {
+export function AgentPresetSeat({ session, load, select, introduced, useAgentPresetSeat, t }: AgentPresetSeatProps) {
   const state = useAgentPresetSeat(snapshot => snapshot)
   const [open, setOpen] = useState(false)
+  // The owner share is a point-in-time snapshot the skeleton re-renders for
+  // us; the first accepted prompt flips it and the chip leaves with it.
+  const blank = session.blank
 
   useEffect(() => {
-    void load()
-  }, [load])
+    if (blank) void load()
+  }, [blank, load])
 
   const chosen = state.options.find(option => option.id === state.current)
   const chosenText = chosen === undefined ? undefined : presetDisplayText(chosen, t)
@@ -101,9 +106,10 @@ export function AgentPresetSeat({ load, select, introduced, useAgentPresetSeat, 
     return () => { window.clearTimeout(done) }
   }, [state.introduce, ready, label, introduced])
 
-  // Nothing to choose between: the deployment composes no presets and every
-  // session shares the host composition.
-  if (!ready) return null
+  // Nothing to choose between: the session has started (its composition is
+  // fixed and the header label reports it), or the deployment composes no
+  // presets and every session shares the host composition.
+  if (!blank || !ready) return null
 
   // One wrapper span: the chip is a flex row with a gap, so loose character
   // spans would each pick up the gap between them.

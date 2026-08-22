@@ -109,6 +109,7 @@
         "./packages/llm/*/src/invariant.ts",
         "./packages/shell/*/src/invariant.ts",
         "./packages/subprocess/*/src/invariant.ts",
+        "./packages/docker/*/src/invariant.ts",
         "./packages/e2b/*/src/invariant.ts",
         "./packages/code-runtime/*/src/invariant.ts",
         "./packages/fs/*/src/invariant.ts",
@@ -164,6 +165,7 @@
       // tsconfig.client.json) stay explicit — TS project references have no
       // wildcard form.
       "@deepseek-ai/dsh-host-apiproxy": ["./packages/host/apiproxy/src"],
+      "@deepseek-ai/dsh-host-monaco-assets": ["./packages/host/monaco-assets/src"],
       "@deepseek-ai/dsh-host-directory-picker": ["./packages/host/directory-picker/src"],
       "@deepseek-ai/dsh-host-directory-picker/*": ["./packages/host/directory-picker/src/*"],
       "@deepseek-ai/dsh-host-directory-picker-browse": ["./packages/host/directory-picker-browse/src"],
@@ -221,6 +223,9 @@
       "@deepseek-ai/dsh-client-ui-plan": ["./packages/client/ui-plan/src"],
       "@deepseek-ai/dsh-client-ui-user-questions": ["./packages/client/ui-user-questions/src"],
       "@deepseek-ai/dsh-client-ui-trajectory": ["./packages/client/ui-trajectory/src"],
+      "@deepseek-ai/dsh-client-ui-docker": ["./packages/client/ui-docker/src"],
+      "@deepseek-ai/dsh-client-ui-editor": ["./packages/client/ui-editor/src"],
+      "@deepseek-ai/dsh-client-ui-editor/client": ["./packages/client/ui-editor/src/client"],
       "@deepseek-ai/dsh-client-ui-workspace": ["./packages/client/ui-workspace/src"],
       "@deepseek-ai/dsh-client-ui-theme": ["./packages/client/ui-theme/src"],
       "@deepseek-ai/dsh-client-ui-settings": ["./packages/client/ui-settings/src"],
@@ -243,6 +248,7 @@
         "./packages/shell/*/src",
         "./packages/terminal/*/src",
         "./packages/subprocess/*/src",
+        "./packages/docker/*/src",
         "./packages/e2b/*/src",
         "./packages/code-runtime/*/src",
         "./packages/fs/*/src",
