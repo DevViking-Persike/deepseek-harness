@@ -87,6 +87,25 @@ export class Lsp extends Service implements LspService {
     super(ctx, 'lsp')
   }
 
+  /**
+   * The registered providers and the extensions each one serves.
+   *
+   * Introspection, not a fifth operation: it reports what the registry holds
+   * rather than reaching any language server, so a UI can show which languages
+   * are covered without spawning a process. Extensions come back sorted so the
+   * result is stable across calls.
+   *
+   * @returns one entry per registered provider, in registration order.
+   */
+  describeProviders(): readonly { readonly id: LspProviderId; readonly extensions: readonly string[] }[] {
+    const byProvider = new Map<LspProviderId, string[]>()
+    for (const id of this.providerIds) byProvider.set(id, [])
+    for (const [extension, route] of this.routes) {
+      byProvider.get(route.provider.id)?.push(extension)
+    }
+    return [...byProvider].map(([id, extensions]) => ({ id, extensions: extensions.sort() }))
+  }
+
   registerProvider(provider: LspProvider): () => void {
     // Validate and conflict-check everything BEFORE any mutation: an invalid or conflicting
     // registration must publish nothing (fail-loud, all-or-nothing).

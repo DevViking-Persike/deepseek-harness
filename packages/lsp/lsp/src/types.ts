@@ -120,6 +120,12 @@ export interface LspService {
    */
   registerProvider(provider: LspProvider): () => void
   /**
+   * Report the registered providers and the extensions each serves. Reads the
+   * registry only — no language server is contacted and none is spawned.
+   * @returns one entry per provider, in registration order.
+   */
+  describeProviders(): readonly { readonly id: LspProviderId; readonly extensions: readonly string[] }[]
+  /**
    * Select a provider by the file's extension and run one query. Selection is per-query and
    * order-independent; no match throws `LspError` `LSP_UNAVAILABLE`.
    * @param request - the normalized query.
