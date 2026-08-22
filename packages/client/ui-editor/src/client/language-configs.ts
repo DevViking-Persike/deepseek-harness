@@ -5,8 +5,9 @@
  * for only five it does not (bicep, elixir, protobuf, ruby, typespec), so
  * pressing Enter fell back to bracket matching alone: a Go `case:` or a Rust
  * `match` arm did not indent. These rules are vendored verbatim from
- * microsoft/vscode's own `language-configuration.json` files, which are MIT —
- * see ThirdPartyNotices. C# is hand-authored because upstream ships none.
+ * microsoft/vscode's own `language-configuration.json` files, which are MIT and
+ * credited under "Vendored data tables" in THIRD_PARTY_NOTICES.md. C# is
+ * hand-authored because upstream ships none.
  *
  * Rules are data, not code: a pattern arrives either as a string or as
  * `{ pattern, flags }`, and `toRegExp` normalizes both because Monaco calls

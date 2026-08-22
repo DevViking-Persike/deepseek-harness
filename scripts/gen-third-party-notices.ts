@@ -704,6 +704,15 @@ The Cordis framework and its foundation libraries are source-vendored into this 
 | --- | --- | --- | --- |
 ${vendored.map(row => `| \`${row.npmName}\` | \`${row.upstreamName}\` | [${row.upstream.replace('https://', '')}](${row.upstream}) | MIT |`).join('\n')}
 
+## Vendored data tables (\`packages/\`)
+
+Data copied into a package's own source rather than installed from npm. It arrives outside every manifest, so the generated dependency sections below cannot discover it; each row is maintained by hand beside the code that carries the copy.
+
+| Where | Upstream | What was copied | License |
+| --- | --- | --- | --- |
+| [\`ui-editor/src/client/language-configs.ts\`](packages/client/ui-editor/src/client/language-configs.ts) | [github.com/microsoft/vscode](https://github.com/microsoft/vscode) | \`indentationRules\` and \`onEnterRules\` from the \`extensions/*/language-configuration.json\` files for Go, Rust, C, C++, TypeScript, and JavaScript | MIT |
+| [\`ui-editor/src/client/file-icons.ts\`](packages/client/ui-editor/src/client/file-icons.ts) | [github.com/material-extensions/vscode-material-icon-theme](https://github.com/material-extensions/vscode-material-icon-theme) | The folder-name-to-role convention its \`folderIcons.ts\` establishes; the colors and glyphs are this repository's own | MIT |
+
 ## Runtime npm dependencies
 
 External packages that a workspace package resolves at runtime. The tier covers every plugin a user can mount from \`cordis.yml\` — not only what the \`dsh\` CLI, Web UI, and Python SDK runtime load by default.

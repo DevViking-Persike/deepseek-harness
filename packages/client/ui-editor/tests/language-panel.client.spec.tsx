@@ -117,6 +117,24 @@ describe('the panel', () => {
     expect(screen.queryByText(zh['languages.mounted'])).toBeNull()
   })
 
+  it('lists a mounted server the catalog does not name', async () => {
+    // Adding a server is a config line, not a code change; one the catalog
+    // never heard of still works, and hiding it would misreport the state.
+    mount({ languageServers: () => Promise.resolve([{ id: 'zig', extensions: ['.zig'] }]) })
+
+    expect(await screen.findByText('zig')).toBeTruthy()
+    expect(screen.getByText('zig').closest('li')?.textContent).toContain('.zig')
+    expect(screen.getByText('zig').closest('li')?.textContent).toContain(zh['languages.mounted'])
+  })
+
+  it('does not duplicate a server the catalog already names', async () => {
+    mount({ languageServers: () => Promise.resolve([{ id: 'go', extensions: ['.go'] }]) })
+    await screen.findByText('Go')
+
+    // The catalog row already reports it; a second row would double-count.
+    expect(screen.queryByText('go')).toBeNull()
+  })
+
   it('closes on request', async () => {
     const onClose = vi.fn()
     mount({ onClose })

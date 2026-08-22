@@ -101,6 +101,13 @@ export function LanguagePanel({ languageServers, onClose, t }: LanguagePanelProp
   }, [languageServers])
 
   const mountedIds = new Set(state.kind === 'ready' ? state.mounted.map(s => s.id) : [])
+  // A deployment may mount a server this catalog does not name — adding one is
+  // a config line, not a code change — and such a server works while staying
+  // invisible here. Listing it by its own id and extensions keeps the panel an
+  // account of what is actually mounted rather than of what was foreseen.
+  const unlisted = state.kind === 'ready'
+    ? state.mounted.filter(server => !KNOWN_LANGUAGES.some(known => known.id === server.id))
+    : []
 
   return (
     <div className={css.backdrop} role="dialog" aria-modal="true">
@@ -134,6 +141,13 @@ export function LanguagePanel({ languageServers, onClose, t }: LanguagePanelProp
                 </li>
               )
             })}
+            {unlisted.map(server => (
+              <li key={server.id} className={css.row}>
+                <span className={clsx(css.badge, css.badgeOn)}>{t('languages.mounted')}</span>
+                <span className={css.label}>{server.id}</span>
+                <span className={css.frameworks}>{server.extensions.join(' ')}</span>
+              </li>
+            ))}
           </ul>
         )}
         <p className={css.footnote}>{t('languages.capabilities')}</p>
