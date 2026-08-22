@@ -1,0 +1,85 @@
+.tree {
+  padding: 6px 0 16px;
+}
+
+.root {
+  margin: 0;
+  padding: 4px 10px 6px;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: var(--dsw-font-xxs-12);
+  font-weight: 500;
+}
+
+.note {
+  margin: 0;
+  padding: 6px 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 3px 8px;
+  border: 0;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: var(--dsw-font-xxs-12);
+}
+
+.row:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.rowOpen {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.row:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: -1px;
+}
+
+/* The mark carries its own color through an inline style, so this rule must
+   not declare `color` — doing so overrode the per-type color. Two-letter marks
+   (`TS`, `GO`) also need room a 10px box denies, and the fixed width keeps
+   every file name aligned in one column. */
+.icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: -0.3px;
+  line-height: 1;
+}
+
+/* Folder marks are single geometric glyphs, so they read better a little
+   larger than the two-letter language marks beside them. */
+.icon[data-folder='1'] {
+  font-size: 11px;
+  letter-spacing: normal;
+}
+
+.name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

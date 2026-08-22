@@ -1,0 +1,134 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dsw-alias-bg-mask-1);
+  backdrop-filter: blur(2px);
+}
+
+.panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(720px, 92vw);
+  max-height: min(560px, 86vh);
+  padding: 16px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  overflow: auto;
+  /* The same opaque dialog surface the settings modal uses. */
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-shadow-lv3);
+}
+
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-s-14);
+}
+
+.close {
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+}
+
+.close:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.note,
+.footnote {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.footnote {
+  padding-top: 6px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  font: var(--dsw-font-xxs-12);
+}
+
+.badge {
+  flex: none;
+  min-width: 62px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.badgeOn {
+  color: var(--dsw-alias-state-success-primary);
+  background: var(--dsw-alias-bg-layer-3);
+}
+
+.badgeOff {
+  color: var(--dsw-alias-label-tertiary);
+  background: var(--dsw-alias-bg-layer-3);
+}
+
+.label {
+  flex: none;
+  color: var(--dsw-alias-label-primary);
+  font-weight: 500;
+}
+
+.frameworks {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.install {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-3);
+  font: var(--dsw-font-markdown-code-block-small);
+}
+
+.requires {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-style: italic;
+}

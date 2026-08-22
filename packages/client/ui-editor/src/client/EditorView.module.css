@@ -1,0 +1,136 @@
+/* Full-bleed, fixed-height host, matching the trajectory view.
+   In an active conversation the view seat grows with its content
+   (`flex: 1 0 auto`), so a percentage height has nothing to resolve against:
+   the panel is sized from the viewport instead, minus the floating composer
+   whose live height the conversation root publishes. */
+.root {
+  box-sizing: border-box;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  max-height: calc(100vh - var(--dsh-composer-height, 152px) - 96px);
+  overflow: hidden;
+}
+
+.tree {
+  flex: none;
+  width: 240px;
+  min-height: 0;
+  border-right: 1px solid var(--dsw-alias-border-l2);
+  /* The file list is the part that must scroll: a project has far more entries
+     than fit, and the pane beside it owns its own scrolling. `contain` stops a
+     wheel gesture that reaches either end from continuing into the
+     conversation column, which is itself a scroll container. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  /* The wheel must act on this box rather than passing through to the page. */
+  touch-action: pan-y;
+
+  /* No visible bar: the panel is narrow, and 8px of permanent chrome beside a
+     file list costs more than it tells. The two declarations are mutually
+     exclusive by engine — the theme's scrollbar.css documents why — so both
+     are stated to cover Firefox and the WebKit-based engines. */
+  scrollbar-width: none;
+}
+
+.tree::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.pane {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.path {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+  font: var(--dsw-font-xxs-12);
+}
+
+.dirty,
+.note {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.save {
+  flex: none;
+  height: 22px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+}
+
+.save:hover:enabled {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.save:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.save:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+/* A refused save is the one state the operator must act on, so it holds the
+   full width above the buffer instead of sitting among the toolbar items. */
+.conflict {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-2);
+  font: var(--dsw-font-xxs-12);
+}
+
+.placeholder {
+  margin: 0;
+  padding: 16px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.editor {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Monaco measures its host on creation, so the element keeps its box and is
+   only visually hidden while no file is open. */
+.editorHidden {
+  visibility: hidden;
+  height: 0;
+  flex: none;
+}
