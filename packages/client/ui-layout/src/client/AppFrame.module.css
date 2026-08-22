@@ -48,6 +48,28 @@
   border-left: none;
 }
 
+/* Mirrored frame (data-sidebar-side='right'): explicit grid placement keeps
+   the DOM order stable while the sidebar column takes track 3 and details
+   takes track 1 — AppFrame reorders the track template to match. Each
+   column's border moves to the edge that faces the center. */
+.frame[data-sidebar-side='right'] .sidebarCol {
+  grid-column: 3;
+  grid-row: 1;
+  border-right: none;
+  border-left: 1px solid var(--dsw-alias-border-l1);
+}
+
+.frame[data-sidebar-side='right'] .detailsCol {
+  grid-column: 1;
+  grid-row: 1;
+  border-left: none;
+  border-right: 1px solid var(--dsw-alias-border-l2);
+}
+
+.frame[data-sidebar-side='right'][data-details-collapsed] .detailsCol {
+  border-right: none;
+}
+
 /* Drag handles are frame children (columns clip overflow): an 8px hit strip
    centered on the column border via inline left, above column content. Details
    adds a visible 12x32 pill at vertical center; sidebar keeps only the hit strip. */

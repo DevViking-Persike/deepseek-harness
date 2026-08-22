@@ -154,20 +154,28 @@ export function AppFrame({
   const onDragEnd = useCallback(() => { setDragging(false) }, [])
   const onSidebarStart = useCallback(() => { sidebarBase.current = colsRef.current.sidebar; setDragging(true) }, [])
   const onDetailsStart = useCallback(() => { detailsBase.current = colsRef.current.details; setDragging(true) }, [])
+  // On the default (left) side the sidebar's resize border is its right edge:
+  // dragging right (+dx) widens it, and the details border mirrors (−dx). A
+  // right-side sidebar swaps both signs — its border with the center is the
+  // LEFT edge — and the details column then sits on the far left.
+  const mirrored = panels.sidebarSide === 'right'
   const onSidebarDrag = useCallback((dx: number) => {
-    actions.setSidebar(sidebarBase.current + dx)
-  }, [actions])
+    actions.setSidebar(sidebarBase.current + (mirrored ? -dx : dx))
+  }, [actions, mirrored])
   const onDetailsDrag = useCallback((dx: number) => {
-    actions.setDetails(detailsBase.current - dx)
-  }, [actions])
+    actions.setDetails(detailsBase.current + (mirrored ? dx : -dx))
+  }, [actions, mirrored])
 
   return (
     <div
       ref={frameRef}
       className={css.frame}
-      style={{ gridTemplateColumns: `${cols.sidebar}px minmax(0, 1fr) ${cols.details}px` }}
+      style={{ gridTemplateColumns: mirrored
+        ? `${cols.details}px minmax(0, 1fr) ${cols.sidebar}px`
+        : `${cols.sidebar}px minmax(0, 1fr) ${cols.details}px` }}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
       data-details-collapsed={cols.details === 0 || undefined}
+      data-sidebar-side={panels.sidebarSide}
       data-dragging={dragging || undefined}
     >
       <div className={css.sidebarCol}>
@@ -194,8 +202,10 @@ export function AppFrame({
         {renderSlot('shell.overlay', {})}
       </div>
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
-      {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
-      {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
+      {!sidebarCollapsed
+        && <DragHandle side="sidebar" left={mirrored ? viewport - cols.sidebar : cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
+      {cols.details > 0
+        && <DragHandle side="details" left={mirrored ? cols.details : viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
     </div>
   )
 }

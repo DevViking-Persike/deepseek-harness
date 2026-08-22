@@ -1,0 +1,27 @@
+/* Sidebar-side toggle: a ghost icon button matching the foot's control row
+   (the sidebar's own .iconButton geometry, restated because CSS Modules do
+   not cross package boundaries). */
+
+.toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.toggle:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.toggle[data-wide='false'] {
+  width: 36px;
+  height: 36px;
+}

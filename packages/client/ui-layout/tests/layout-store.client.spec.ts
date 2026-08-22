@@ -19,7 +19,7 @@ beforeEach(() => { localStorage.clear() })
 describe('createLayoutStore', () => {
   it('initializes the sidebar at its default width, details closed, wide viewport assumed', () => {
     const { store } = createLayoutStore().create()
-    expect(store.getSnapshot()).toEqual({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false })
+    expect(store.getSnapshot()).toEqual({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false, sidebarSide: 'left' })
   })
 
   it('each create() is an independent instance (factory is not a singleton)', () => {
@@ -41,6 +41,16 @@ describe('createLayoutStore', () => {
     expect(store.getSnapshot().details).toBe(DETAILS_MAX)
   })
 
+  it('toggleSidebarSide mirrors the placement without touching widths', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setSidebar(400)
+    actions.toggleSidebarSide()
+    expect(store.getSnapshot().sidebarSide).toBe('right')
+    expect(store.getSnapshot().sidebar).toBe(400)
+    actions.toggleSidebarSide()
+    expect(store.getSnapshot().sidebarSide).toBe('left')
+  })
+
   it('toggleSidebar flips closed <-> contract default (drag width forgotten)', () => {
     const { store, actions } = createLayoutStore().create()
     actions.setSidebar(400)
@@ -55,7 +65,7 @@ describe('createLayoutStore', () => {
     actions.setSidebar(400)
     actions.setNarrow(true)
     actions.toggleSidebar()
-    expect(store.getSnapshot()).toEqual({ sidebar: 400, details: 0, narrow: true, narrowExpanded: true })
+    expect(store.getSnapshot()).toEqual({ sidebar: 400, details: 0, narrow: true, narrowExpanded: true, sidebarSide: 'left' })
     actions.toggleSidebar()
     expect(store.getSnapshot().narrowExpanded).toBe(false)
     expect(store.getSnapshot().sidebar).toBe(400)
@@ -98,6 +108,7 @@ describe('createLayoutStore', () => {
       details: 0,
       narrow: false,
       narrowExpanded: false,
+      sidebarSide: 'left',
     })
   })
 })

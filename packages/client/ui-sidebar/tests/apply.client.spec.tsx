@@ -9,7 +9,7 @@ import type { SidebarRootInjected } from '@deepseek-ai/dsh-client-ui-sidebar/cli
 async function bench(declare = true) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
-  const layout = { toggleSidebar: vi.fn() }
+  const layout = { toggleSidebar: vi.fn(), toggleSidebarSide: vi.fn() }
   const workspaces = { startSession: vi.fn() }
   const sessions = { open: vi.fn(), clear: vi.fn() }
   ctx.provide('layout', layout)
@@ -51,6 +51,17 @@ describe('ui-sidebar apply', () => {
     expect(b.workspaces.startSession).toHaveBeenLastCalledWith(undefined)
     injected.toggleSidebar()
     expect(b.layout.toggleSidebar).toHaveBeenCalledOnce()
+  })
+
+  it('registers the side toggle as the foot\'s first action', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const entries = b.slots.entries('sidebar.footer.action')
+    expect(entries).toHaveLength(1)
+    expect(entries[0]!.options.id).toBe('sidebar-side-toggle')
+    const injected = (entries[0]!.inject as () => { toggle: () => void })()
+    injected.toggle()
+    expect(b.layout.toggleSidebarSide).toHaveBeenCalledOnce()
   })
 
   it('fails when no live owner declared the sidebar slot', async () => {

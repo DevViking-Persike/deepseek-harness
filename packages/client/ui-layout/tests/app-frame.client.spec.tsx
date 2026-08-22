@@ -234,6 +234,19 @@ describe('AppFrame', () => {
     expect(tracks(frame)[1]).toBe(420)
   })
 
+  it('a right-side sidebar mirrors the template, placement, and drag signs', () => {
+    const { frame, instance } = mountFrame()
+    act(() => { instance.actions.openDetails() })
+    act(() => { instance.actions.toggleSidebarSide() })
+    // Track 1 is now details; the sidebar occupies the last track.
+    expect(frame.getAttribute('data-sidebar-side')).toBe('right')
+    expect(tracks(frame)).toEqual([360, 280])
+    // Dragging the sidebar's (left) border LEFT widens it: −dx grows.
+    const handles = frame.querySelectorAll('[class*="handle"]')
+    drag(handles[0]!, 1560, 1500)
+    expect(tracks(frame)[1]).toBe(340)
+  })
+
   it('drag base is the rendered (concession-clamped) width, not the preference', () => {
     frameWidth = 1250 // step-2 squeeze: details renders 330 while preference is 360
     const { frame, instance } = mountFrame()

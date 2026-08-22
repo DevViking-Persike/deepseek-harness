@@ -4,6 +4,8 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { SidebarRootInjected } from './contract/slots.ts'
 import { SidebarRoot } from './SidebarRoot.tsx'
+import { SidebarSideToggle } from './SidebarSideToggle.tsx'
+import type { SidebarSideToggleInjected } from './SidebarSideToggle.tsx'
 import { en, zh, type SidebarKey } from './locales.ts'
 
 export type {
@@ -54,5 +56,18 @@ export function apply(ctx: ClientContext): void {
       inject: injectProps,
     }, SidebarRoot),
     'ui-sidebar: slot registration',
+  )
+
+  // The foot's first action mirrors the frame. It ships with the column it
+  // moves; ui-layout owns the placement state behind ctx.layout.
+  ctx.effect(
+    () => ctx.slots.register({
+      name: 'sidebar.footer.action',
+      id: 'sidebar-side-toggle',
+      order: -10,
+      locale: NS,
+      inject: (): SidebarSideToggleInjected => ({ toggle: () => { ctx.layout.toggleSidebarSide() } }),
+    }, SidebarSideToggle),
+    'ui-sidebar: side-toggle registration',
   )
 }

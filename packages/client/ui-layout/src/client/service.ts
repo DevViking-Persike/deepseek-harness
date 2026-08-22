@@ -23,6 +23,8 @@ export type PanelActions = BoundActions<ReturnType<typeof createLayoutStore>>
 export interface ILayout {
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
   toggleSidebar(): void
+  /** Mirror the frame: swap the sidebar to the opposite outer column. */
+  toggleSidebarSide(): void
   /** Open the details panel (no-op when already open). */
   openDetails(): void
   /** Close the details panel. */
@@ -47,6 +49,11 @@ export class LayoutController implements ILayout {
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
   toggleSidebar(): void {
     this.#require().toggleSidebar()
+  }
+
+  /** Mirror the frame: swap the sidebar to the opposite outer column. */
+  toggleSidebarSide(): void {
+    this.#require().toggleSidebarSide()
   }
 
   /** Open the details panel (no-op when already open). */
