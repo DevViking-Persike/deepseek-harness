@@ -163,6 +163,86 @@
     - id: subprocess
       name: '@deepseek-ai/dsh-subprocess-local'
 
+    # Language intelligence. The seam answers four semantic queries
+    # (definition, references, implementation, hover); a server is spawned
+    # lazily on first query and only for the extensions it declares, so an
+    # entry whose executable is absent simply never serves those files.
+    - id: lsp
+      name: '@deepseek-ai/dsh-lsp'
+
+    - id: lsp-stdio
+      name: '@deepseek-ai/dsh-lsp-stdio'
+      config:
+        servers:
+          typescript:
+            command: typescript-language-server
+            args: ['--stdio']
+            extensionToLanguage:
+              '.ts': typescript
+              '.tsx': typescriptreact
+              '.mts': typescript
+              '.cts': typescript
+              '.js': javascript
+              '.jsx': javascriptreact
+              '.mjs': javascript
+              '.cjs': javascript
+          python:
+            command: pyright-langserver
+            args: ['--stdio']
+            extensionToLanguage:
+              '.py': python
+              '.pyi': python
+
+          # `dotnet tool install --global` writes to ~/.dotnet/tools, which is not
+          # on PATH by default, so the command is absolute.
+          csharp:
+            command: /Users/persike/.dotnet/tools/csharp-ls
+            extensionToLanguage:
+              '.cs': csharp
+
+          clangd:
+            command: clangd
+            extensionToLanguage:
+              '.c': c
+              '.h': c
+              '.cpp': cpp
+              '.cxx': cpp
+              '.cc': cpp
+              '.hpp': cpp
+              '.hh': cpp
+
+          svelte:
+            command: svelteserver
+            args: ['--stdio']
+            extensionToLanguage:
+              '.svelte': svelte
+
+          rust:
+            command: rust-analyzer
+            extensionToLanguage:
+              '.rs': rust
+          go:
+            command: gopls
+            extensionToLanguage:
+              '.go': go
+
+    # The Docker seam plus its local CLI backend. Registering the backend costs
+    # nothing when no daemon runs: availability is probed per call during
+    # selection, so a machine without Docker simply has no usable provider.
+    - id: docker
+      name: '@deepseek-ai/dsh-docker'
+
+    - id: docker-local
+      name: '@deepseek-ai/dsh-docker-local'
+
+    # Read-only Docker tools ship on; the Compose lifecycle tools do not,
+    # because starting and stopping containers is a deployment decision.
+    - id: tool-docker
+      name: '@deepseek-ai/dsh-tool-docker'
+      config:
+        inspect: true
+        compose: false
+
     # Every shipped CLI mode starts with the same file-effect boundary.
     # The environment remains an explicit deployment override; otherwise fresh
     # sessions pin workspace-write + ask through the permission service below.
@@ -449,3 +529,25 @@
     # choice.
     - id: llm-deepseek
       name: '@deepseek-ai/dsh-llm-deepseek'
+
+    # The local CLIProxyAPI adapter (OpenAI-compatible /v1/chat/completions
+    # over the operator's own CLI subscriptions). The proxy API key resolves
+    # per request from the credential store via CLIPROXY_API_KEY; the endpoint
+    # defaults to http://127.0.0.1:8317/v1.
+    - id: llm-cliproxy
+      name: '@deepseek-ai/dsh-llm-cliproxy'
+
+    # Claude subscription OAuth adapter: talks to Anthropic /v1/messages with
+    # the Claude Code client identity over the operator's own Claude
+    # subscription. The OAuth credential seeds from an optional CLIProxyAPI
+    # auth file (importFrom) or a browser login on the control endpoint.
+    - id: llm-claude-code
+      name: '@deepseek-ai/dsh-llm-claude-code'
+
+    # Codex subscription OAuth adapter: talks to the ChatGPT backend Codex
+    # Responses endpoint with the Codex CLI identity over the operator's own
+    # Codex subscription. The OAuth credential seeds from an optional
+    # CLIProxyAPI auth file (importFrom) or a browser login on the control
+    # endpoint.
+    - id: llm-codex
+      name: '@deepseek-ai/dsh-llm-codex'

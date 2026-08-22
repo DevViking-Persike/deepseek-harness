@@ -16,7 +16,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-agent-default-model'
 import type { ApiProxy } from './api/index.ts'
-import { createApiProxy, DEFAULT_COLD_BLANK_PROBE_MAX_BYTES } from './api-proxy.ts'
+import { createApiProxy, DEFAULT_COLD_BLANK_PROBE_MAX_BYTES, DEFAULT_DOCKER_LOG_MAX_CHARS } from './api-proxy.ts'
 import {
   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
   type SessionLogCompressionLevel,
@@ -59,6 +59,12 @@ export interface Config {
    * @default 1024
    */
   coldBlankProbeMaxBytes?: number
+  /**
+   * Cap on characters one `docker.logs` response carries. The newest text
+   * survives and the response reports `truncated`.
+   * @default 40000
+   */
+  dockerLogMaxChars?: number
 }
 
 /**
@@ -77,6 +83,7 @@ export class ApiProxyService extends Service implements ApiProxy {
     sessionExportCompressionLevel: z.number().step(1).min(0).max(9)
       .default(DEFAULT_SESSION_LOG_COMPRESSION_LEVEL) as z<SessionLogCompressionLevel>,
     coldBlankProbeMaxBytes: z.natural().default(DEFAULT_COLD_BLANK_PROBE_MAX_BYTES),
+    dockerLogMaxChars: z.natural().min(1).default(DEFAULT_DOCKER_LOG_MAX_CHARS),
   })
 
   readonly sessions: ApiProxy['sessions']
@@ -85,6 +92,8 @@ export class ApiProxyService extends Service implements ApiProxy {
   readonly host: ApiProxy['host']
   readonly goals: ApiProxy['goals']
   readonly skills: ApiProxy['skills']
+  readonly editor: ApiProxy['editor']
+  readonly docker: ApiProxy['docker']
   readonly agentPresets: ApiProxy['agentPresets']
   readonly settings: ApiProxy['settings']
   readonly credentials: ApiProxy['credentials']
@@ -106,6 +115,9 @@ export class ApiProxyService extends Service implements ApiProxy {
       ...(config.coldBlankProbeMaxBytes === undefined
         ? {}
         : { coldBlankProbeMaxBytes: config.coldBlankProbeMaxBytes }),
+      ...(config.dockerLogMaxChars === undefined
+        ? {}
+        : { dockerLogMaxChars: config.dockerLogMaxChars }),
     })
     this.sessions = api.sessions
     this.subagents = api.subagents
@@ -113,6 +125,8 @@ export class ApiProxyService extends Service implements ApiProxy {
     this.host = api.host
     this.goals = api.goals
     this.skills = api.skills
+    this.editor = api.editor
+    this.docker = api.docker
     this.agentPresets = api.agentPresets
     this.settings = api.settings
     this.credentials = api.credentials

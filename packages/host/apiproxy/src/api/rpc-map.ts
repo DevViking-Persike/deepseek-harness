@@ -9,6 +9,8 @@ import type { HostApi } from './host.ts'
 import type { WorkspaceApi } from './workspace.ts'
 import type { AgentPresetsApi } from './agent-presets.ts'
 import type { SkillsApi } from './skills.ts'
+import type { DockerApi } from './docker.ts'
+import type { EditorApi } from './editor.ts'
 import type { GoalsApi } from './goals.ts'
 import type { SettingsApi } from './settings.ts'
 import type { CredentialsApi } from './credentials.ts'
@@ -51,6 +53,20 @@ export interface RpcMethodMap {
   'workspace.insertSessionBefore': WorkspaceApi['insertSessionBefore']
   'workspace.archiveSession': WorkspaceApi['archiveSession']
   'skill.list': SkillsApi['list']
+  'editor.languageServers': EditorApi['languageServers']
+  'editor.listDir': EditorApi['listDir']
+  'editor.readFile': EditorApi['readFile']
+  'editor.writeFile': EditorApi['writeFile']
+  'docker.engineStatus': DockerApi['engineStatus']
+  'docker.startEngine': DockerApi['startEngine']
+  'docker.installEngine': DockerApi['installEngine']
+  'docker.listContainers': DockerApi['listContainers']
+  'docker.control': DockerApi['control']
+  'docker.listImages': DockerApi['listImages']
+  'docker.logs': DockerApi['logs']
+  'docker.browseCompose': DockerApi['browseCompose']
+  'docker.composeUp': DockerApi['composeUp']
+  'docker.composeDown': DockerApi['composeDown']
   'agentPreset.list': AgentPresetsApi['list']
   'agentPreset.select': AgentPresetsApi['select']
   'agentPreset.read': AgentPresetsApi['read']

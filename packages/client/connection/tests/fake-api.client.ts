@@ -196,6 +196,26 @@ export class FakeApiClient implements IApiClient {
     list: (payload: unknown) => this.record('skill.list', payload, this.onSkillList(payload)),
   }
 
+  readonly editor: IApiClient['editor'] = {
+    languageServers: payload => this.record('editor.languageServers', payload, Promise.resolve(ok({ servers: [] }))),
+    listDir: payload => this.record('editor.listDir', payload, Promise.resolve(ok({ path: '/w', root: '/w', entries: [] }))),
+    readFile: payload => this.record('editor.readFile', payload, Promise.resolve(ok({ path: payload.path, content: '', version: 'v1' }))),
+    writeFile: payload => this.record('editor.writeFile', payload, Promise.resolve(ok({ path: payload.path, version: 'v2' }))),
+  }
+
+  readonly docker: IApiClient['docker'] = {
+    engineStatus: payload => this.record('docker.engineStatus', payload, Promise.resolve(ok({ status: { running: true, startable: false, installable: false } }))),
+    startEngine: payload => this.record('docker.startEngine', payload, Promise.resolve(ok({ status: { running: true, startable: false, installable: false }, output: '' }))),
+    installEngine: payload => this.record('docker.installEngine', payload, Promise.resolve(ok({ status: { running: false, startable: true, installable: false }, output: '' }))),
+    control: payload => this.record('docker.control', payload, Promise.resolve(ok({ container: { id: payload.container, name: payload.container, image: 'nginx', state: 'running', status: 'Up', ports: [], createdAt: '0' } }))),
+    listContainers: payload => this.record('docker.listContainers', payload, Promise.resolve(ok({ containers: [] }))),
+    listImages: payload => this.record('docker.listImages', payload, Promise.resolve(ok({ images: [] }))),
+    logs: payload => this.record('docker.logs', payload, Promise.resolve(ok({ container: payload.container, content: '', truncated: false }))),
+    browseCompose: payload => this.record('docker.browseCompose', payload, Promise.resolve(ok({ path: '/h', home: '/h', crumbs: [], entries: [], truncated: false }))),
+    composeUp: payload => this.record('docker.composeUp', payload, Promise.resolve(ok({ project: 'p', output: '', containers: [] }))),
+    composeDown: payload => this.record('docker.composeDown', payload, Promise.resolve(ok({ project: 'p', output: '', containers: [] }))),
+  }
+
   readonly goals: IApiClient['goals'] = {
     create: payload => this.record('goal.create', payload, Promise.resolve(ok({ ref: { id: 'fake-goal' as never, revision: 1 } }))),
     edit: payload => this.record('goal.edit', payload, Promise.resolve(ok({ ref: { id: 'fake-goal' as never, revision: 1 } }))),

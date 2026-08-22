@@ -45,6 +45,15 @@ import {
 } from '../api/workspace.schema.ts'
 import { skillListRequestSchema } from '../api/skills.schema.ts'
 import {
+  editorLanguageServersRequestSchema, editorListDirRequestSchema, editorReadFileRequestSchema, editorWriteFileRequestSchema,
+} from '../api/editor.schema.ts'
+import {
+  dockerBrowseComposeRequestSchema, dockerComposeDownRequestSchema, dockerComposeUpRequestSchema,
+  dockerEngineStatusRequestSchema, dockerInstallEngineRequestSchema, dockerStartEngineRequestSchema,
+  dockerControlRequestSchema,
+  dockerListContainersRequestSchema, dockerListImagesRequestSchema, dockerLogsRequestSchema,
+} from '../api/docker.schema.ts'
+import {
   agentPresetCopyRequestSchema, agentPresetListRequestSchema, agentPresetOpenDocumentRequestSchema,
   agentPresetReadRequestSchema, agentPresetRemoveRequestSchema, agentPresetSelectRequestSchema,
 } from '../api/agent-presets.schema.ts'
@@ -117,6 +126,20 @@ const UNARY_ROUTES: UnaryRoutes = {
   'workspace.insertSessionBefore': { schema: workspaceInsertSessionBeforeRequestSchema, invoke: (api, r) => api.workspace.insertSessionBefore(r) },
   'workspace.archiveSession': { schema: workspaceArchiveSessionRequestSchema, invoke: (api, r) => api.workspace.archiveSession(r) },
   'skill.list': { schema: skillListRequestSchema, invoke: (api, r) => api.skills.list(r) },
+  'editor.languageServers': { schema: editorLanguageServersRequestSchema, invoke: (api, r, signal) => api.editor.languageServers(r, signal) },
+  'editor.listDir': { schema: editorListDirRequestSchema, invoke: (api, r, signal) => api.editor.listDir(r, signal) },
+  'editor.readFile': { schema: editorReadFileRequestSchema, invoke: (api, r, signal) => api.editor.readFile(r, signal) },
+  'editor.writeFile': { schema: editorWriteFileRequestSchema, invoke: (api, r, signal) => api.editor.writeFile(r, signal) },
+  'docker.engineStatus': { schema: dockerEngineStatusRequestSchema, invoke: (api, r, signal) => api.docker.engineStatus(r, signal) },
+  'docker.startEngine': { schema: dockerStartEngineRequestSchema, invoke: (api, r, signal) => api.docker.startEngine(r, signal) },
+  'docker.installEngine': { schema: dockerInstallEngineRequestSchema, invoke: (api, r, signal) => api.docker.installEngine(r, signal) },
+  'docker.listContainers': { schema: dockerListContainersRequestSchema, invoke: (api, r, signal) => api.docker.listContainers(r, signal) },
+  'docker.control': { schema: dockerControlRequestSchema, invoke: (api, r, signal) => api.docker.control(r, signal) },
+  'docker.listImages': { schema: dockerListImagesRequestSchema, invoke: (api, r, signal) => api.docker.listImages(r, signal) },
+  'docker.logs': { schema: dockerLogsRequestSchema, invoke: (api, r, signal) => api.docker.logs(r, signal) },
+  'docker.composeUp': { schema: dockerComposeUpRequestSchema, invoke: (api, r, signal) => api.docker.composeUp(r, signal) },
+  'docker.composeDown': { schema: dockerComposeDownRequestSchema, invoke: (api, r, signal) => api.docker.composeDown(r, signal) },
+  'docker.browseCompose': { schema: dockerBrowseComposeRequestSchema, invoke: (api, r, signal) => api.docker.browseCompose(r, signal) },
   'agentPreset.list': { schema: agentPresetListRequestSchema, invoke: (api, r) => api.agentPresets.list(r) },
   'agentPreset.select': { schema: agentPresetSelectRequestSchema, invoke: (api, r) => api.agentPresets.select(r) },
   'agentPreset.read': { schema: agentPresetReadRequestSchema, invoke: (api, r) => api.agentPresets.read(r) },

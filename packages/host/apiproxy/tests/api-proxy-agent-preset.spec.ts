@@ -427,15 +427,36 @@ describe('agentPreset.select', () => {
     expect(resolveSessionPreset(session)).toBe('standard')
   })
 
-  it('refuses once the conversation has started', async () => {
+  it('recomposes a started conversation in place once its turn settled', async () => {
     const { api, ctx } = await harness(['standard', 'minimal'])
     await api.sessions.create(request({ sessionId: SessionId('sel-2'), agentPreset: 'standard' }))
-    // One turn is enough: the history from here on was produced under
-    // `standard`'s tools, and a swap would strand those tool calls.
-    ctx.sessions.get(SessionId('sel-2'))?.append('turn/start', { turn: 0 })
+    // One COMPLETED turn: the history stays as durable evidence, and the
+    // swap changes what the NEXT request assembles, not the old log.
+    const session = ctx.sessions.get(SessionId('sel-2'))
+    session?.append('turn/start', { turn: 0 })
+    session?.append('turn/end', { turn: 0, reason: { kind: 'completed' } })
 
     const response = await api.agentPresets.select(
       request({ sessionId: SessionId('sel-2'), agentPreset: 'minimal' }))
+
+    expect(response.result.ok).toBe(true)
+    if (!response.result.ok) throw new Error('unreachable')
+    expect(response.result.value.agentPreset).toBe('minimal')
+    if (session === undefined) throw new Error('unreachable')
+    expect(resolveSessionPreset(session)).toBe('minimal')
+  })
+
+  it('refuses while a turn is still running', async () => {
+    const { api, ctx } = await harness(['standard', 'minimal'])
+    await api.sessions.create(request({ sessionId: SessionId('sel-2b'), agentPreset: 'standard' }))
+    const agent = ctx.agents.get(SessionId('sel-2b'))
+    if (agent === undefined) throw new Error('unreachable')
+    // Mid-turn: swapping the toolset between a step's request and its tool
+    // executions would strand work in flight.
+    ;(agent as { status: string }).status = 'running'
+
+    const response = await api.agentPresets.select(
+      request({ sessionId: SessionId('sel-2b'), agentPreset: 'minimal' }))
 
     expect(response.result.ok).toBe(false)
     if (response.result.ok) throw new Error('unreachable')

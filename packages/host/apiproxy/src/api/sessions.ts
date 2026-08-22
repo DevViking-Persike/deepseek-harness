@@ -333,9 +333,20 @@ export interface SessionsApi {
    * without acquiring an Agent. Workspace attachment follows the source
    * directly, or the nearest workspace-owning ancestor when the source is a
    * subagent.
+   *
+   * An explicit `agentPreset` makes the fork a derived continuation: the
+   * child keeps the exact completed source transcript — historical tool
+   * calls included, as durable evidence rather than an active tool
+   * contract — but its agent is composed under the requested preset, and
+   * its next request assembles only that composition's system prompt and
+   * tool schemas. A child-owned `agent-preset/selected` event follows the
+   * seed boundary so any inherited source selection cannot override the
+   * target on resume. The source is never mutated. An unknown or broken
+   * preset fails with the agent-preset error codes before any child is
+   * published. The response echoes the resolved preset the child runs.
    */
-  fork(request: RpcRequest<{ sessionId: SessionId; atSeq?: number }>):
-  Promise<RpcResponse<{ sessionId: SessionId }>>
+  fork(request: RpcRequest<{ sessionId: SessionId; atSeq?: number; agentPreset?: string }>):
+  Promise<RpcResponse<{ sessionId: SessionId; agentPreset?: string }>>
 
   /**
    * Sends text and temporary image bytes to an ordinary session Agent after durable host admission.

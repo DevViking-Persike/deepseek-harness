@@ -4,9 +4,9 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { mkdir, stat } from 'node:fs/promises'
+import { mkdir, opendir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
@@ -36,7 +36,9 @@ import {
 import type { PresetBearingSession } from '@deepseek-ai/dsh-agent-presets'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {
-  ApiProxy, ConfigurableProviderView, CredentialView, GoalRef, HistoryEntry, HostFrame,
+  ApiProxy, ConfigurableProviderView, CredentialView, DockerComposeBrowseEntry,
+  DockerContainerEntry, DockerImageEntry,
+  GoalRef, HistoryEntry, HostFrame,
   ModelCatalogFailure, ModelProviderGroup,
   ModelReasoning, MuxFrame, PromptContentPart, QuestionResponsePayload, SessionListMetadata, SessionProjectionsBlock, SessionSearchItem,
   QueuedInboxItem, SessionSummary, SettingsNamespaceView, SubagentAddress, JobView, ToolEventView,
@@ -75,6 +77,17 @@ import type {} from '@deepseek-ai/dsh-commands'
 // rebuild the api-remotes cycle this direction exists to avoid.
 import type {} from '@deepseek-ai/dsh-cordis-host-runner/types'
 import type {} from '@deepseek-ai/dsh-skill'
+// Type-only edge: the editor domain reports which language servers are mounted.
+import type {} from '@deepseek-ai/dsh-lsp'
+// Value edge: the editor domain narrows the filesystem seam's failure codes
+// onto its own wire vocabulary, which needs FsError as a value.
+import { FsError } from '@deepseek-ai/dsh-fs'
+import type { FileSystem, FsTarget, FsVersion } from '@deepseek-ai/dsh-fs'
+import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
+// Value edge: the docker domain narrows the seam's provider-selection failures
+// onto one wire code; the import also resolves `ctx.get('docker')`.
+import { DockerError } from '@deepseek-ai/dsh-docker'
+import type { DockerContainer, DockerImage } from '@deepseek-ai/dsh-docker'
 // The settings/credentials seams: brand guards run at this wire boundary; the
 // service reads stay optional (`ctx.get`) so a composition without either
 // provider still serves every other domain.
@@ -120,6 +133,29 @@ const SESSION_SEARCH_PROVIDER_CALL_LIMIT = 100
 const COLD_SUMMARY_BATCH_SIZE = 16
 /** Default maximum artifact size eligible for one cold blankness read. */
 export const DEFAULT_COLD_BLANK_PROBE_MAX_BYTES = 1024
+
+/** Default cap on characters one `docker.logs` response carries. */
+/**
+ * Largest file this editor opens. A browser editor holds the whole text in
+ * memory and ships it back on every save, so this cap is the product's choice,
+ * not the filesystem's.
+ */
+export const EDITOR_MAX_FILE_BYTES = 5 * 1024 * 1024
+
+export const DEFAULT_DOCKER_LOG_MAX_CHARS = 40_000
+
+/** Default cap on characters one Compose lifecycle response carries. */
+export const DEFAULT_DOCKER_COMPOSE_OUTPUT_MAX_CHARS = 40_000
+
+/** Default cap on rows one `docker.browseCompose` level returns. */
+export const DEFAULT_DOCKER_COMPOSE_BROWSE_MAX_ENTRIES = 500
+
+/**
+ * File names `docker.browseCompose` offers as compose candidates. Compose's
+ * own default file set plus the `*.compose.yml` convention; the check is
+ * case-insensitive because the host filesystem may be too.
+ */
+const COMPOSE_FILE_PATTERN = /^(?:docker-)?compose(?:\.[\w-]+)?\.ya?ml$|\.compose\.ya?ml$/i
 
 /** Conversation message event types (the pagination counting unit). */
 const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
@@ -604,6 +640,12 @@ export interface ApiProxyDefaults {
   sessionExportCompressionLevel?: SessionLogCompressionLevel
   /** Maximum artifact size eligible for one cold blankness read. */
   coldBlankProbeMaxBytes?: number
+  /** Cap on characters one `docker.logs` response carries; the newest text survives. */
+  dockerLogMaxChars?: number
+  /** Cap on rows one `docker.browseCompose` level returns. */
+  dockerComposeBrowseMaxEntries?: number
+  /** Cap on characters one Compose lifecycle response carries; the newest text survives. */
+  dockerComposeOutputMaxChars?: number
   /**
    * Whether handing a path to the native opener can work at all — the
    * `hasDocument` capability the preset roster reports, and the switch
@@ -1043,6 +1085,247 @@ function changedWorkspaceView(workspaceId: string, value: unknown): WorkspaceVie
 }
 
 /**
+ * Provider-selection codes the Docker seam raises before any engine call.
+ * Every one of them means the browser has no engine to show, so they collapse
+ * onto one wire code instead of five the client would have to branch on.
+ */
+const DOCKER_SELECTION_CODES: ReadonlySet<string> = new Set([
+  'DOCKER_PROVIDER_UNAVAILABLE',
+  'DOCKER_PROVIDER_AMBIGUOUS',
+  'DOCKER_PROVIDER_CONFIGURED_MISSING',
+  'DOCKER_PROVIDER_CONFIGURED_UNAVAILABLE',
+])
+
+/** The wire refusal every docker.* row answers when no composition mounts the seam. */
+function dockerAbsent(): RpcError {
+  return {
+    code: 'docker-unavailable',
+    message: 'docker seam is absent: this composition mounts no Docker seam (e.g. @deepseek-ai/dsh-docker with @deepseek-ai/dsh-docker-local) in its plugin set',
+    details: {},
+  }
+}
+
+/** Map one seam failure onto the wire vocabulary: selection failures are the empty state, everything else is internal. */
+function dockerError(error: unknown): RpcError {
+  if (error instanceof DockerError && DOCKER_SELECTION_CODES.has(error.code)) {
+    return { code: 'docker-unavailable', message: error.message, details: {} }
+  }
+  return { code: 'internal', message: error instanceof Error ? error.message : String(error), details: {} }
+}
+
+/**
+ * Map one Compose failure onto the wire vocabulary. A selection failure stays
+ * the empty state, but an engine that rejected the project is a distinct
+ * answer: the operator's file was reached and refused, so the client shows the
+ * engine's own text instead of an internal fault.
+ */
+function dockerComposeError(error: unknown): RpcError {
+  if (error instanceof DockerError && !DOCKER_SELECTION_CODES.has(error.code)) {
+    return { code: 'compose-failed', message: error.message, details: {} }
+  }
+  return dockerError(error)
+}
+
+/** Wire projection of one seam container (the state union widens to the wire's plain string). */
+function dockerContainerEntry(container: DockerContainer): DockerContainerEntry {
+  return {
+    id: container.id,
+    name: container.name,
+    image: container.image,
+    state: container.state,
+    status: container.status,
+    ...container.project === undefined ? {} : { project: container.project },
+    ...container.service === undefined ? {} : { service: container.service },
+    ports: [...container.ports],
+    createdAt: container.createdAt,
+  }
+}
+
+/** Wire projection of one seam image. */
+function dockerImageEntry(image: DockerImage): DockerImageEntry {
+  return {
+    id: image.id,
+    tags: [...image.tags],
+    size: image.size,
+    createdAt: image.createdAt,
+  }
+}
+
+/** Whether a file name is one this browser offers as a compose candidate. */
+export function isComposeFileName(name: string): boolean {
+  return COMPOSE_FILE_PATTERN.test(name)
+}
+
+/** The wire refusal every editor.* row answers when no composition mounts a filesystem seam. */
+function editorAbsent(): RpcError {
+  return {
+    code: 'editor-unavailable',
+    message: 'filesystem seam is absent: this composition mounts no @deepseek-ai/dsh-fs provider in its plugin set',
+    details: {},
+  }
+}
+
+/**
+ * Map one filesystem failure onto the editor's wire vocabulary. Each code is a
+ * state the editor renders differently, so they stay distinct rather than
+ * collapsing into one internal error.
+ */
+function editorError(error: unknown): RpcError {
+  const code = error instanceof FsError ? error.code : undefined
+  if (code === 'FS_STALE_VERSION') {
+    return { code: 'editor-stale', message: (error as FsError).message, details: {} }
+  }
+  if (code === 'FS_SANDBOX_DENIED' || code === 'FS_PERMISSION_DENIED') {
+    return { code: 'editor-denied', message: (error as FsError).message, details: {} }
+  }
+  if (code === 'FS_NOT_TEXT') {
+    return { code: 'editor-not-text', message: (error as FsError).message, details: {} }
+  }
+  if (code === 'FS_TOO_LARGE') {
+    return { code: 'editor-too-large', message: (error as FsError).message, details: {} }
+  }
+  if (error instanceof EditorOutsideWorkspace) {
+    return { code: 'editor-denied', message: error.message, details: {} }
+  }
+  return { code: 'internal', message: error instanceof Error ? error.message : String(error), details: {} }
+}
+
+/**
+ * A path that resolved outside the session's workspace root. Separate from the
+ * sandbox's own refusal because this fence runs first, on every operation
+ * including reads, so a wire value can never address the wider filesystem.
+ */
+class EditorOutsideWorkspace extends Error {
+  constructor(path: string) {
+    super(`"${path}" is outside the session workspace`)
+    this.name = 'EditorOutsideWorkspace'
+  }
+}
+
+/**
+ * The sandbox policy one editor write runs under. Resolved from the addressed
+ * session so the write honors that session's mode and workspace root; without
+ * a session the deployment default applies, which is the stricter answer.
+ *
+ * @param ctx - host context carrying the sandbox-policy and session services.
+ * @param sessionId - the addressed session, when the client named one.
+ * @returns the resolved policy, or undefined when no policy service is mounted.
+ */
+function editorPolicy(ctx: Context, sessionId: string | undefined): SandboxExecutionPolicy | undefined {
+  const policy = ctx.get('sandboxPolicy')
+  if (policy === undefined) return undefined
+  const session = sessionId === undefined ? undefined : ctx.sessions.get(sessionId as SessionId)
+  return session === undefined ? policy.resolve({}) : policy.resolve({ session })
+}
+
+/**
+ * The workspace root the editor is fenced by: the addressed session's project
+ * directory, else the deployment's own root.
+ *
+ * @param ctx - host context carrying the session and sandbox-policy services.
+ * @param fs - the filesystem seam.
+ * @param sessionId - the addressed session, when the client named one.
+ * @param signal - cancellation for the resolution.
+ * @returns the resolved root target.
+ */
+async function editorRoot(
+  ctx: Context,
+  fs: FileSystem,
+  sessionId: string | undefined,
+  signal: AbortSignal,
+): Promise<FsTarget> {
+  const session = sessionId === undefined ? undefined : ctx.sessions.get(sessionId as SessionId)
+  const cwd = session?.header.cwd
+  if (cwd !== undefined && cwd !== '') return fs.resolve(cwd, { signal })
+  const policy = ctx.get('sandboxPolicy')?.resolve({})
+  return fs.resolve(policy?.workspaceRoot ?? process.cwd(), { signal })
+}
+
+/**
+ * Resolve a client-supplied path and prove it lives inside `root`.
+ *
+ * @param fs - the filesystem seam.
+ * @param root - the workspace root the path must be contained by.
+ * @param path - the client-supplied path.
+ * @param signal - cancellation for the resolution.
+ * @returns the resolved target.
+ * @throws {EditorOutsideWorkspace} when the path escapes the root.
+ */
+async function editorTarget(
+  fs: FileSystem,
+  root: FsTarget,
+  path: string,
+  signal: AbortSignal,
+): Promise<FsTarget> {
+  const target = await fs.resolve(path, { cwd: root.displayPath, signal })
+  // Containment is decided by the seam, which compares resolved targets rather
+  // than raw strings, so `..` and symlinks cannot walk out.
+  if (target.targetKey !== root.targetKey && !fs.contains(root, target)) {
+    throw new EditorOutsideWorkspace(path)
+  }
+  return target
+}
+
+
+/**
+ * Ancestor chain from the filesystem root to `target` inclusive — the
+ * breadcrumb rows of a compose browse, every one a jump target.
+ * @param target - absolute directory the browse listed.
+ * @returns the crumbs, root first.
+ */
+function composeCrumbs(target: string): DockerComposeBrowseEntry[] {
+  const crumbs: DockerComposeBrowseEntry[] = []
+  let current = target
+  for (;;) {
+    const parent = dirname(current)
+    // basename of a root is '' — label the root crumb by its full path.
+    crumbs.unshift({
+      name: parent === current ? current : basename(current),
+      path: current,
+      directory: true,
+      hidden: false,
+    })
+    if (parent === current) return crumbs
+    current = parent
+  }
+}
+
+/**
+ * List one directory level, keeping child directories and compose YAML files.
+ * Directories come first, each group name-sorted, so the rows read as
+ * "descend here" before "pick this".
+ * @param target - absolute directory to list.
+ * @param maxEntries - cap on returned rows.
+ * @returns the rows and whether the cap dropped any.
+ */
+async function composeLevel(
+  target: string,
+  maxEntries: number,
+): Promise<{ entries: DockerComposeBrowseEntry[]; truncated: boolean }> {
+  const directories: DockerComposeBrowseEntry[] = []
+  const files: DockerComposeBrowseEntry[] = []
+  let seen = 0
+  const level = await opendir(target)
+  for await (const dirent of level) {
+    const isDirectory = dirent.isDirectory()
+    if (!isDirectory && !isComposeFileName(dirent.name)) continue
+    seen += 1
+    if (seen > maxEntries) continue
+    const row: DockerComposeBrowseEntry = {
+      name: dirent.name,
+      path: join(target, dirent.name),
+      directory: isDirectory,
+      hidden: dirent.name.startsWith('.'),
+    }
+    ;(isDirectory ? directories : files).push(row)
+  }
+  const byName = (a: DockerComposeBrowseEntry, b: DockerComposeBrowseEntry) => a.name.localeCompare(b.name)
+  directories.sort(byName)
+  files.sort(byName)
+  return { entries: [...directories, ...files], truncated: seen > maxEntries }
+}
+
+/**
  * Implement ApiProxy over a composed host context.
  * @param ctx - a context with the Host spine and Workspace registry mounted.
  * @param defaults - host routing and project-directory defaults.
@@ -1053,6 +1336,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     ?? DEFAULT_SESSION_LOG_COMPRESSION_LEVEL
   const coldBlankProbeMaxBytes = defaults.coldBlankProbeMaxBytes
     ?? DEFAULT_COLD_BLANK_PROBE_MAX_BYTES
+  const dockerLogMaxChars = defaults.dockerLogMaxChars ?? DEFAULT_DOCKER_LOG_MAX_CHARS
+  const dockerComposeOutputMaxChars = defaults.dockerComposeOutputMaxChars ?? DEFAULT_DOCKER_COMPOSE_OUTPUT_MAX_CHARS
+  const dockerComposeBrowseMaxEntries = defaults.dockerComposeBrowseMaxEntries
+    ?? DEFAULT_DOCKER_COMPOSE_BROWSE_MAX_ENTRIES
   /** The seed model each create/resume declares; re-read so it never goes stale. */
   const agentOptions = (): AgentOptions => {
     const { provider, model } = defaults.defaultModelSelection()
@@ -2329,12 +2616,32 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           })
         }
         const childId = `session-${randomUUID()}` as SessionId
-        // The child inherits the parent's composition for the same reason a
-        // resumed session keeps its own: the seeded history was produced under
-        // those tools, and composing anything else would strand the tool calls
-        // it already carries. Now that no model-facing row sits in the host
-        // plane, composing nothing would leave the child with no tools at all.
-        const forkComposition = await composeAgent(resolveSessionPreset(source))
+        // An explicit agentPreset makes this a derived continuation: the seed
+        // keeps the source's completed transcript — historical tool calls are
+        // durable evidence, not an active tool contract — while the child is
+        // composed under the requested preset and every later request
+        // assembles only that composition's prompt and tool schemas. The
+        // source's own composition stays what it was; resolveSessionPreset of
+        // the child must land on the target even when the seed carries a
+        // source selection event, so setup appends a child-owned selection
+        // after the seed boundary (last event wins) and before publication —
+        // host/session-added derives the preset synchronously at creation.
+        const sourcePreset = resolveSessionPreset(source)
+        const requestedPreset = request.payload.agentPreset
+        let forkComposition: Awaited<ReturnType<typeof composeAgent>>
+        try {
+          forkComposition = await composeAgent(requestedPreset ?? sourcePreset)
+        } catch (error: unknown) {
+          const refused = presetFailure(request, error)
+          if (refused !== undefined) return refused
+          return err(request, {
+            code: 'internal',
+            message: `failed to fork session "${sessionId}": ${String(error)}`,
+            details: {},
+          })
+        }
+        const targetId = forkComposition.agentPreset
+        const recordSelected = requestedPreset !== undefined && targetId !== undefined && targetId !== sourcePreset
         try {
           await ctx.agents.create({
             sessionId: childId,
@@ -2343,12 +2650,17 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
               ...source.header.cwd === undefined ? {} : { cwd: source.header.cwd },
               parentSession: source.id,
               seedLength: cut,
-              ...forkComposition.agentPreset === undefined
-                ? {}
-                : { agentPreset: forkComposition.agentPreset },
+              ...targetId === undefined ? {} : { agentPreset: targetId },
             },
             agentOptions: agentOptions(),
-            setup: forkComposition.setup,
+            setup: async (agentCtx: Context) => {
+              await forkComposition.setup(agentCtx)
+              if (recordSelected) {
+                const agent = agentCtx.agent
+                if (agent === undefined) throw new Error('api-proxy: agent setup has no scoped agent')
+                agent.session.append('agent-preset/selected', { agentPreset: targetId })
+              }
+            },
           })
         } catch (error: unknown) {
           return err(request, {
@@ -2371,7 +2683,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             })
           }
         }
-        return ok(request, { sessionId: childId })
+        return ok(request, {
+          sessionId: childId,
+          ...targetId === undefined ? {} : { agentPreset: targetId },
+        })
       },
 
       async prompt(request) {
@@ -3014,12 +3329,18 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         if ('error' in found) return err(request, found.error)
         const { agent } = found
         const swap = async (): Promise<RpcResponse<{ agentPreset: string }>> => {
-          // Re-read inside the queue: an earlier switch may have run, and a
-          // conversation may have started, since this request arrived.
-          if (!sessionBlank(agent.session)) {
+          // Re-read inside the queue: an earlier switch may have run since
+          // this request arrived. A started conversation may recompose in
+          // place: its completed history is durable evidence, and completed
+          // tool call/result pairs stay valid provider history even when the
+          // new composition no longer offers those tools — the next request
+          // assembles only the new prompt and tool schemas. A running turn
+          // is refused: swapping the toolset between a step's request and
+          // its tool executions would strand work in flight.
+          if (agent.status === 'running') {
             return err(request, {
               code: 'agent-preset-locked',
-              message: `session "${sessionId}" has already started; its agent preset is fixed`,
+              message: `session "${sessionId}" is running a turn; switch its agent preset after the turn settles`,
               details: { sessionId, agentPreset },
             })
           }
@@ -3170,6 +3491,305 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           })
         } catch (error: unknown) {
           return err(request, { code: 'internal', message: `skill listing failed: ${String(error)}`, details: {} })
+        }
+      },
+    },
+
+    editor: {
+      // Every row resolves the path inside the session's workspace root first,
+      // so a wire value can never address the wider filesystem, and reaches the
+      // seam through `ctx.get('fs')` rather than an inject entry — the gateway
+      // must not wait on a filesystem provider to serve its other domains.
+
+      // Introspection over the LSP registry: no language server is contacted,
+      // so this answers immediately, and a composition without the seam reports
+      // an empty list rather than an error — absent language intelligence is a
+      // state the editor renders, not a failure.
+      languageServers(request) {
+        const lsp = ctx.get('lsp')
+        if (lsp === undefined) return Promise.resolve(ok(request, { servers: [] }))
+        return Promise.resolve(ok(request, {
+          servers: lsp.describeProviders().map(provider => ({
+            id: String(provider.id),
+            extensions: [...provider.extensions],
+          })),
+        }))
+      },
+
+      async listDir(request, signal) {
+        const fs = ctx.get('fs')
+        if (fs === undefined) return err(request, editorAbsent())
+        const { sessionId, path } = request.payload
+        try {
+          const root = await editorRoot(ctx, fs, sessionId, signal)
+          const target = path === undefined || path === ''
+            ? root
+            : await editorTarget(fs, root, path, signal)
+          const children = await fs.listDir(target, signal)
+          // Directories first, then files: a tree reads top-down, and mixing
+          // the two by name alone buries folders among their siblings.
+          const entries = children
+            .filter(child => child.type === 'file' || child.type === 'directory')
+            .map(child => ({
+              name: child.name,
+              path: child.target.displayPath,
+              directory: child.type === 'directory',
+            }))
+            .sort((a, b) => a.directory === b.directory
+              ? a.name.localeCompare(b.name)
+              : (a.directory ? -1 : 1))
+          return ok(request, { path: target.displayPath, root: root.displayPath, entries })
+        } catch (error: unknown) {
+          return err(request, editorError(error))
+        }
+      },
+
+      async readFile(request, signal) {
+        const fs = ctx.get('fs')
+        if (fs === undefined) return err(request, editorAbsent())
+        const { sessionId, path } = request.payload
+        try {
+          const root = await editorRoot(ctx, fs, sessionId, signal)
+          const target = await editorTarget(fs, root, path, signal)
+          const info = await fs.stat(target, signal)
+          if (info === undefined) {
+            return err(request, { code: 'editor-not-found', message: `"${path}" does not exist`, details: {} })
+          }
+          if (info.type !== 'file') {
+            return err(request, { code: 'editor-not-found', message: `"${path}" is not a file`, details: {} })
+          }
+          if (info.size !== undefined && info.size > EDITOR_MAX_FILE_BYTES) {
+            return err(request, {
+              code: 'editor-too-large',
+              message: `"${path}" is larger than this editor opens (${String(EDITOR_MAX_FILE_BYTES)} bytes)`,
+              details: {},
+            })
+          }
+          const content = await fs.readText(target, signal)
+          return ok(request, { path: target.displayPath, content, version: String(info.version) })
+        } catch (error: unknown) {
+          return err(request, editorError(error))
+        }
+      },
+
+      async writeFile(request, signal) {
+        const fs = ctx.get('fs')
+        if (fs === undefined) return err(request, editorAbsent())
+        const { sessionId, path, content, version } = request.payload
+        try {
+          const root = await editorRoot(ctx, fs, sessionId, signal)
+          const target = await editorTarget(fs, root, path, signal)
+          // The version guard is the whole point: the agent edits the same
+          // files, and an unconditional write would silently discard its work.
+          const outcome = await fs.writeText(
+            target,
+            content,
+            { kind: 'replaceIfVersion', version: version as FsVersion },
+            signal,
+            editorPolicy(ctx, sessionId),
+          )
+          return ok(request, { path: target.displayPath, version: String(outcome.version) })
+        } catch (error: unknown) {
+          return err(request, editorError(error))
+        }
+      },
+    },
+
+    docker: {
+      // Read-only by design: every lifecycle operation belongs to the agent's
+      // logged tool calls. `ctx.get` keeps the domain independent of the
+      // gateway plugin's inject list — an undeclared `ctx.docker` property read
+      // fails the reflect proxy — and a composition with no Docker seam answers
+      // the same `docker-unavailable` empty state as an unreachable engine.
+      // Engine management is the one exception to the read-only stance, and it
+      // is not a container operation: it makes the engine reachable at all, so
+      // there is no session in which a tool call could have run instead.
+      async engineStatus(request, signal) {
+        const docker = ctx.get('docker')
+        if (docker === undefined) {
+          return ok(request, {
+            status: {
+              running: false,
+              startable: false,
+              installable: false,
+              detail: dockerAbsent().message,
+            },
+          })
+        }
+        try {
+          return ok(request, { status: { ...await docker.engineStatus(signal) } })
+        } catch (error: unknown) {
+          return err(request, dockerError(error))
+        }
+      },
+
+      async startEngine(request, signal) {
+        const docker = ctx.get('docker')
+        if (docker === undefined) return err(request, dockerAbsent())
+        try {
+          const result = await docker.startEngine(signal)
+          return ok(request, { status: { ...result.status }, output: result.output })
+        } catch (error: unknown) {
+          return err(request, dockerError(error))
+        }
+      },
+
+      async installEngine(request, signal) {
+        const docker = ctx.get('docker')
+        if (docker === undefined) return err(request, dockerAbsent())
+        try {
+          const result = await docker.installEngine(signal)
+          return ok(request, { status: { ...result.status }, output: result.output })
+        } catch (error: unknown) {
+          return err(request, dockerError(error))
+        }
+      },
+
+      async listContainers(request, signal) {
+        const docker = ctx.get('docker')
+        if (docker === undefined) return err(request, dockerAbsent())
+        const { all, project } = request.payload
+        try {
+          const containers = await docker.list({
+            ...all === undefined ? {} : { all },
+            ...project === undefined ? {} : { project },
+          }, signal)
+          return ok(request, { containers: containers.map(dockerContainerEntry) })
+        } catch (error: unknown) {
+          return err(request, dockerError(error))
+        }
+      },
+
+      // One container the operator can already see, acted on directly. Unlike
+      // the agent's tool calls this needs no session: the gesture and its
+      // subject are both on screen, and a whole project still goes through the
+      // compose rows.
+      async control(request, signal) {
+        const docker = ctx.get('docker')
+        if (docker === undefined) return err(request, dockerAbsent())
+        const { container, action } = request.payload
+        try {
+          const settled = await docker.control({ container, action }, signal)
+          return ok(request, { container: dockerContainerEntry(settled) })
+        } catch (error: unknown) {
+          return err(request, dockerComposeError(error))
+        }
+      },
+
+      async listImages(request, signal) {
+        const docker = ctx.get('docker')
+        if (docker === undefined) return err(request, dockerAbsent())
+        try {
+          const images = await docker.images(signal)
+          return ok(request, { images: images.map(dockerImageEntry) })
+        } catch (error: unknown) {
+          return err(request, dockerError(error))
+        }
+      },
+
+      async logs(request, signal) {
+        const docker = ctx.get('docker')
+        if (docker === undefined) return err(request, dockerAbsent())
+        const { container, tail } = request.payload
+        try {
+          const result = await docker.logs({
+            container,
+            ...tail === undefined ? {} : { tail },
+          }, signal)
+          // Keep the newest characters: the tail of a log explains a failure
+          // that just happened. `truncated` stays true when the provider
+          // already dropped entries under its own cap.
+          const over = result.content.length > dockerLogMaxChars
+          return ok(request, {
+            container: result.container,
+            content: over ? result.content.slice(result.content.length - dockerLogMaxChars) : result.content,
+            truncated: over || result.truncated,
+          })
+        } catch (error: unknown) {
+          return err(request, dockerError(error))
+        }
+      },
+
+      // Compose selection is host-side because a browser `<input type="file">`
+      // yields a sandboxed handle, never the host path the Docker CLI needs.
+      // This row reads the host filesystem directly and needs no Docker engine,
+      // so a stopped daemon still lets a person find their compose file.
+      async browseCompose(request, signal) {
+        const { path } = request.payload
+        const target = path ?? homedir()
+        try {
+          const stats = await stat(target)
+          if (!stats.isDirectory()) {
+            return err(request, {
+              code: 'directory-unreadable',
+              message: `"${target}" is not a directory`,
+              details: { path: target },
+            })
+          }
+          const { entries, truncated } = await composeLevel(target, dockerComposeBrowseMaxEntries)
+          if (signal.aborted) return err(request, { code: 'cancelled', message: 'browse cancelled', details: {} })
+          return ok(request, {
+            path: target,
+            home: homedir(),
+            crumbs: composeCrumbs(target),
+            entries,
+            truncated,
+          })
+        } catch (error: unknown) {
+          return err(request, {
+            code: 'directory-unreadable',
+            message: `cannot read "${target}": ${error instanceof Error ? error.message : String(error)}`,
+            details: { path: target },
+          })
+        }
+      },
+
+      // Compose lifecycle from the browser stays out of the read-only stance
+      // for one reason: the operator picked the file, so this IS the user's
+      // own action rather than the agent acting on their behalf.
+      async composeUp(request, signal) {
+        const docker = ctx.get('docker')
+        if (docker === undefined) return err(request, dockerAbsent())
+        const { file, project } = request.payload
+        try {
+          const result = await docker.composeUp({
+            file,
+            ...project === undefined ? {} : { project },
+          }, signal)
+          return ok(request, {
+            project: result.project,
+            // Keep the newest characters: Compose reports progress
+            // chronologically, so the tail carries the outcome.
+            output: result.output.length > dockerComposeOutputMaxChars
+              ? result.output.slice(result.output.length - dockerComposeOutputMaxChars)
+              : result.output,
+            containers: result.containers.map(dockerContainerEntry),
+          })
+        } catch (error: unknown) {
+          return err(request, dockerComposeError(error))
+        }
+      },
+
+      async composeDown(request, signal) {
+        const docker = ctx.get('docker')
+        if (docker === undefined) return err(request, dockerAbsent())
+        const { file, project } = request.payload
+        try {
+          const result = await docker.composeDown({
+            file,
+            ...project === undefined ? {} : { project },
+          }, signal)
+          return ok(request, {
+            project: result.project,
+            // Keep the newest characters: Compose reports progress
+            // chronologically, so the tail carries the outcome.
+            output: result.output.length > dockerComposeOutputMaxChars
+              ? result.output.slice(result.output.length - dockerComposeOutputMaxChars)
+              : result.output,
+            containers: result.containers.map(dockerContainerEntry),
+          })
+        } catch (error: unknown) {
+          return err(request, dockerComposeError(error))
         }
       },
     },

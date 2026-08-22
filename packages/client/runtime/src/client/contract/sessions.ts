@@ -91,10 +91,13 @@ export interface ISessions {
    *   cut (the boundary is the first turn/end at or after it; an in-log
    *   anchor in an open turn is unavailable rather than clipped backward),
    *   and whether to increment an inherited durable title before resolving.
+   *   An optional agentPreset composes the child under a different
+   *   composition (a derived continuation: the visible history is preserved
+   *   and the source is never mutated).
    * @returns the child session id.
    * @throws when the fork fails, or when a requested child-title rename fails after creation.
    */
-  fork(opts: { sessionId: SessionId; atSeq?: number; increaseTitle?: boolean }): Promise<SessionId>
+  fork(opts: { sessionId: SessionId; atSeq?: number; increaseTitle?: boolean; agentPreset?: string }): Promise<SessionId>
   /**
    * Register a per-session standard-props provider (hooks become `use<Name>`
    * selector hooks on the render side; props spread verbatim).

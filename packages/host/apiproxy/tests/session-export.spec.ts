@@ -130,11 +130,12 @@ describe('session export compression config', () => {
     expect(ApiProxyService.Config({})).toEqual({
       sessionExportCompressionLevel: 6,
       coldBlankProbeMaxBytes: 1024,
+      dockerLogMaxChars: 40_000,
     })
     expect(ApiProxyService.Config({ sessionExportCompressionLevel: 0 }))
-      .toEqual({ sessionExportCompressionLevel: 0, coldBlankProbeMaxBytes: 1024 })
+      .toEqual({ sessionExportCompressionLevel: 0, coldBlankProbeMaxBytes: 1024, dockerLogMaxChars: 40_000 })
     expect(ApiProxyService.Config({ sessionExportCompressionLevel: 9 }))
-      .toEqual({ sessionExportCompressionLevel: 9, coldBlankProbeMaxBytes: 1024 })
+      .toEqual({ sessionExportCompressionLevel: 9, coldBlankProbeMaxBytes: 1024, dockerLogMaxChars: 40_000 })
     for (const value of [-1, 10, 1.5]) {
       expect(() => ApiProxyService.Config({ sessionExportCompressionLevel: value } as never)).toThrow()
     }
@@ -144,11 +145,21 @@ describe('session export compression config', () => {
 describe('cold blank probe config', () => {
   it('accepts a per-Session byte bound including zero and rejects invalid bounds', () => {
     expect(ApiProxyService.Config({ coldBlankProbeMaxBytes: 0 }))
-      .toEqual({ sessionExportCompressionLevel: 6, coldBlankProbeMaxBytes: 0 })
+      .toEqual({ sessionExportCompressionLevel: 6, coldBlankProbeMaxBytes: 0, dockerLogMaxChars: 40_000 })
     expect(ApiProxyService.Config({ coldBlankProbeMaxBytes: 2048 }))
-      .toEqual({ sessionExportCompressionLevel: 6, coldBlankProbeMaxBytes: 2048 })
+      .toEqual({ sessionExportCompressionLevel: 6, coldBlankProbeMaxBytes: 2048, dockerLogMaxChars: 40_000 })
     for (const value of [-1, 1.5]) {
       expect(() => ApiProxyService.Config({ coldBlankProbeMaxBytes: value })).toThrow()
+    }
+  })
+})
+
+describe('docker log cap config', () => {
+  it('defaults to 40000 characters and rejects a non-positive or fractional cap', () => {
+    expect(ApiProxyService.Config({ dockerLogMaxChars: 500 }))
+      .toEqual({ sessionExportCompressionLevel: 6, coldBlankProbeMaxBytes: 1024, dockerLogMaxChars: 500 })
+    for (const value of [0, -1, 1.5]) {
+      expect(() => ApiProxyService.Config({ dockerLogMaxChars: value })).toThrow()
     }
   })
 })

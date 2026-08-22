@@ -508,6 +508,7 @@ export class SessionRuntime implements ISessions {
     sessionId: SessionId
     atSeq?: number
     increaseTitle?: boolean
+    agentPreset?: string
   }): Promise<SessionId> {
     const sourceTitle = opts.increaseTitle
       ? this.list.getSnapshot().byId[opts.sessionId]?.title
@@ -518,6 +519,7 @@ export class SessionRuntime implements ISessions {
       // turn/start), so the host's first-turn/end-at-or-after cut still ends
       // on that turn — never clipped back to the previous one.
       ...(opts.atSeq === undefined ? {} : { atSeq: Math.floor(opts.atSeq) }),
+      ...opts.agentPreset === undefined ? {} : { agentPreset: opts.agentPreset },
     })
     if (!result.ok) throw new SessionForkError(result.error, opts.sessionId)
     this.projectList()

@@ -72,6 +72,35 @@ export interface RpcErrorDetailsMap {
   /** A credential write was refused (read-only shadowing layer or storage failure); the message is the seam's own text. */
   'credential-rejected': { ref: string }
   /**
+   * No Docker engine is reachable: the composition mounts no Docker seam, or
+   * the seam has no usable provider, several usable providers with none
+   * pinned, or a configured provider that is missing or cannot reach its
+   * engine. Those are one empty state for a client, so they share one code.
+   */
+  'docker-unavailable': {}
+  /** No filesystem seam is mounted, so the editor cannot read or write. */
+  'editor-unavailable': {}
+  /** The path resolves outside the workspace, or the sandbox refused the write. */
+  'editor-denied': {}
+  /** The requested path does not exist. */
+  'editor-not-found': {}
+  /** The file is not decodable text, so an editor cannot present it. */
+  'editor-not-text': {}
+  /** The file exceeds the deployment's editable size cap. */
+  'editor-too-large': {}
+  /**
+   * The file changed since the editor read it — normally the agent editing the
+   * same file. The save is refused so the concurrent edit is never clobbered.
+   */
+  'editor-stale': {}
+  /**
+   * A reachable engine refused the Compose project: a port already bound, an
+   * unparseable file, a failing health check. Distinct from
+   * `docker-unavailable` because the operator's file was reached, so the
+   * message carries the engine's own text and the client keeps the selection.
+   */
+  'compose-failed': {}
+  /**
    * Interrogating a draft provider endpoint did not produce a model listing:
    * no adapter family serves the namespace, the protocol has no listing this
    * build can read, or the endpoint was unreachable, refused the credential,

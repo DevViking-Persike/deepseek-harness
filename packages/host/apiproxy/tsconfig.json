@@ -18,6 +18,9 @@
       "path": "../../credentials/credentials"
     },
     {
+      "path": "../../docker/docker"
+    },
+    {
       "path": "../../../vendor/cordis"
     },
     {
@@ -43,6 +46,15 @@
     },
     {
       "path": "../../preset/agent-presets"
+    },
+    {
+      "path": "../../lsp/lsp"
+    },
+    {
+      "path": "../../fs/fs"
+    },
+    {
+      "path": "../../sandbox/sandbox"
     },
     {
       "path": "../../core/session"

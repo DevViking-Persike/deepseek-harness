@@ -63,10 +63,14 @@ export interface AgentPresetsApi {
   /**
    * Recompose one session's agent from a different preset.
    *
-   * Allowed only while the session is blank — no turn has run. Once a
-   * conversation starts, its history was produced under that preset's tools,
-   * and swapping them would leave logged tool calls the new composition cannot
-   * make; the attempt answers `agent-preset-locked`.
+   * Allowed on a blank session and on a started, settled conversation: the
+   * completed history stays as durable evidence — completed tool call/result
+   * pairs remain valid provider history even when the new composition no
+   * longer offers those tools — and the next request assembles only the new
+   * composition's prompt and tool schemas. A turn in flight is refused with
+   * `agent-preset-locked`: the swap would strand work between a step's
+   * request and its tool executions. A failed swap restores the previous
+   * composition.
    */
   select(request: RpcRequest<{ sessionId: SessionId; agentPreset: string }>):
   Promise<RpcResponse<{ agentPreset: string }>>

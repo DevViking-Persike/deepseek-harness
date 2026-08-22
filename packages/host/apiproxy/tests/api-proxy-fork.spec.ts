@@ -14,6 +14,22 @@ import type { Workspace } from '@deepseek-ai/dsh-workspace'
 import type { RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
 import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
 import { createApiProxy } from '@deepseek-ai/dsh-host-apiproxy'
+import { resolveSessionPreset, UnknownPresetError } from '@deepseek-ai/dsh-agent-presets'
+
+/** A roster double: resolve/mount are no-ops that echo the id. */
+function presetRoster(ids: readonly string[]): unknown {
+  const presetOf = (id: string): object => ({ id, trust: 'system' as const, path: `/presets/${id}.yml` })
+  return {
+    defaultId: ids[0],
+    list: () => Promise.resolve(ids.map(presetOf)),
+    resolve: (id?: string) => {
+      const wanted = id ?? ids[0] ?? ''
+      if (!ids.includes(wanted)) return Promise.reject(new UnknownPresetError(wanted, ids))
+      return Promise.resolve(presetOf(wanted))
+    },
+    mount: (_ctx: Context, id?: string) => Promise.resolve(presetOf(id ?? ids[0] ?? '')),
+  }
+}
 
 const sid = (id: string): SessionId => id as SessionId
 
@@ -284,6 +300,70 @@ describe('sessions.fork', () => {
       model: 'inherited-model',
       reasoningEffort: 'high',
     })
+    await ctx.fiber.dispose()
+  })
+
+  it('continues under an explicitly requested preset and overrides an inherited selection', async () => {
+    const ctx = await composed()
+    ctx.provide('agentPresets', presetRoster(['standard', 'minimal']) as never)
+    // Source created on standard, switched while blank to minimal, then ran
+    // a turn: the log's last selection names minimal.
+    const source = liveAgent(ctx, 'session-switched', 1)
+    source.append('agent-preset/selected', { agentPreset: 'minimal' })
+    const sourceEvents = [...source.events]
+
+    const response = await api(ctx).sessions.fork(request({
+      sessionId: source.id,
+      agentPreset: 'standard',
+    }))
+
+    expect(response.result.ok).toBe(true)
+    if (!response.result.ok) return
+    expect(response.result.value.agentPreset).toBe('standard')
+    const child = ctx.sessions.get(response.result.value.sessionId)
+    if (child === undefined) throw new Error('fork did not create the child session')
+    expect(child.header.agentPreset).toBe('standard')
+    expect(child.header.seedLength).toBe(sourceEvents.length)
+    // The child-owned selection follows the seed boundary so the inherited
+    // minimal event cannot win on resume: resolution is last-event-wins.
+    expect(child.events.at(-2)?.type).toBe('session/end-seed')
+    expect(child.events.at(-1)).toMatchObject({ type: 'agent-preset/selected', data: { agentPreset: 'standard' } })
+    expect(resolveSessionPreset(child)).toBe('standard')
+    // The source keeps its own events untouched.
+    expect(source.events).toEqual(sourceEvents)
+    await ctx.fiber.dispose()
+  })
+
+  it('keeps the inherited composition on an omitted preset and adds no selection event', async () => {
+    const ctx = await composed()
+    ctx.provide('agentPresets', presetRoster(['standard', 'minimal']) as never)
+    const source = liveAgent(ctx, 'session-plain', 1)
+    source.append('agent-preset/selected', { agentPreset: 'minimal' })
+
+    const response = await api(ctx).sessions.fork(request({ sessionId: source.id }))
+
+    expect(response.result.ok).toBe(true)
+    if (!response.result.ok) return
+    const child = ctx.sessions.get(response.result.value.sessionId)
+    if (child === undefined) throw new Error('fork did not create the child session')
+    expect(child.events.at(-1)?.type).toBe('session/end-seed')
+    expect(child.events.some(event => event.type === 'agent-preset/selected' && event.seq > (child.header.seedLength ?? 0))).toBe(false)
+    expect(resolveSessionPreset(child)).toBe('minimal')
+    await ctx.fiber.dispose()
+  })
+
+  it('refuses an unknown continuation preset before publishing a child', async () => {
+    const ctx = await composed()
+    ctx.provide('agentPresets', presetRoster(['standard']) as never)
+    const source = liveAgent(ctx, 'session-unknown', 1)
+
+    const response = await api(ctx).sessions.fork(request({
+      sessionId: source.id,
+      agentPreset: 'nope',
+    }))
+
+    expect(response.result).toMatchObject({ ok: false, error: { code: 'agent-preset-not-found' } })
+    if (!response.result.ok) expect(response.result.error.message).toMatch(/nope/)
     await ctx.fiber.dispose()
   })
 })

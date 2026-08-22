@@ -42,6 +42,15 @@ import {
 } from '../api/workspace.schema.ts'
 import { skillListValueSchema } from '../api/skills.schema.ts'
 import {
+  editorLanguageServersValueSchema, editorListDirValueSchema, editorReadFileValueSchema, editorWriteFileValueSchema,
+} from '../api/editor.schema.ts'
+import {
+  dockerBrowseComposeValueSchema, dockerComposeDownValueSchema, dockerComposeUpValueSchema,
+  dockerEngineStatusValueSchema, dockerInstallEngineValueSchema, dockerStartEngineValueSchema,
+  dockerControlValueSchema,
+  dockerListContainersValueSchema, dockerListImagesValueSchema, dockerLogsValueSchema,
+} from '../api/docker.schema.ts'
+import {
   agentPresetCopyValueSchema, agentPresetListValueSchema, agentPresetOpenDocumentValueSchema,
   agentPresetReadValueSchema, agentPresetRemoveValueSchema, agentPresetSelectValueSchema,
 } from '../api/agent-presets.schema.ts'
@@ -124,6 +133,24 @@ export interface IApiClient {
   skills: {
     list(payload: RequestPayload<'skill.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'skill.list'>>>
   }
+  editor: {
+    languageServers(payload: RequestPayload<'editor.languageServers'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'editor.languageServers'>>>
+    listDir(payload: RequestPayload<'editor.listDir'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'editor.listDir'>>>
+    readFile(payload: RequestPayload<'editor.readFile'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'editor.readFile'>>>
+    writeFile(payload: RequestPayload<'editor.writeFile'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'editor.writeFile'>>>
+  }
+  docker: {
+    engineStatus(payload: RequestPayload<'docker.engineStatus'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.engineStatus'>>>
+    startEngine(payload: RequestPayload<'docker.startEngine'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.startEngine'>>>
+    installEngine(payload: RequestPayload<'docker.installEngine'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.installEngine'>>>
+    listContainers(payload: RequestPayload<'docker.listContainers'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.listContainers'>>>
+    control(payload: RequestPayload<'docker.control'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.control'>>>
+    listImages(payload: RequestPayload<'docker.listImages'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.listImages'>>>
+    logs(payload: RequestPayload<'docker.logs'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.logs'>>>
+    browseCompose(payload: RequestPayload<'docker.browseCompose'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.browseCompose'>>>
+    composeUp(payload: RequestPayload<'docker.composeUp'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.composeUp'>>>
+    composeDown(payload: RequestPayload<'docker.composeDown'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.composeDown'>>>
+  }
   agentPresets: {
     list(payload: RequestPayload<'agentPreset.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'agentPreset.list'>>>
     select(payload: RequestPayload<'agentPreset.select'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'agentPreset.select'>>>
@@ -199,6 +226,20 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'workspace.insertSessionBefore': workspaceInsertSessionBeforeValueSchema,
   'workspace.archiveSession': workspaceArchiveSessionValueSchema,
   'skill.list': skillListValueSchema,
+  'editor.languageServers': editorLanguageServersValueSchema,
+  'editor.listDir': editorListDirValueSchema,
+  'editor.readFile': editorReadFileValueSchema,
+  'editor.writeFile': editorWriteFileValueSchema,
+  'docker.engineStatus': dockerEngineStatusValueSchema,
+  'docker.startEngine': dockerStartEngineValueSchema,
+  'docker.installEngine': dockerInstallEngineValueSchema,
+  'docker.listContainers': dockerListContainersValueSchema,
+  'docker.control': dockerControlValueSchema,
+  'docker.listImages': dockerListImagesValueSchema,
+  'docker.logs': dockerLogsValueSchema,
+  'docker.browseCompose': dockerBrowseComposeValueSchema,
+  'docker.composeUp': dockerComposeUpValueSchema,
+  'docker.composeDown': dockerComposeDownValueSchema,
   'agentPreset.list': agentPresetListValueSchema,
   'agentPreset.select': agentPresetSelectValueSchema,
   'agentPreset.read': agentPresetReadValueSchema,
@@ -455,6 +496,26 @@ export abstract class AbstractApiClient implements IApiClient {
 
   readonly skills: IApiClient['skills'] = {
     list: (payload, signal) => this.callUnary('skill.list', payload, signal),
+  }
+
+  readonly editor: IApiClient['editor'] = {
+    languageServers: (payload, signal) => this.callUnary('editor.languageServers', payload, signal),
+    listDir: (payload, signal) => this.callUnary('editor.listDir', payload, signal),
+    readFile: (payload, signal) => this.callUnary('editor.readFile', payload, signal),
+    writeFile: (payload, signal) => this.callUnary('editor.writeFile', payload, signal),
+  }
+
+  readonly docker: IApiClient['docker'] = {
+    engineStatus: (payload, signal) => this.callUnary('docker.engineStatus', payload, signal),
+    startEngine: (payload, signal) => this.callUnary('docker.startEngine', payload, signal),
+    installEngine: (payload, signal) => this.callUnary('docker.installEngine', payload, signal),
+    listContainers: (payload, signal) => this.callUnary('docker.listContainers', payload, signal),
+    control: (payload, signal) => this.callUnary('docker.control', payload, signal),
+    listImages: (payload, signal) => this.callUnary('docker.listImages', payload, signal),
+    logs: (payload, signal) => this.callUnary('docker.logs', payload, signal),
+    browseCompose: (payload, signal) => this.callUnary('docker.browseCompose', payload, signal),
+    composeUp: (payload, signal) => this.callUnary('docker.composeUp', payload, signal),
+    composeDown: (payload, signal) => this.callUnary('docker.composeDown', payload, signal),
   }
 
   // Annotated like every sibling, and load-bearing rather than cosmetic:

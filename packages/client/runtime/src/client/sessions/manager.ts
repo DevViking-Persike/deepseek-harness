@@ -578,13 +578,14 @@ export class SessionManager {
    * @returns the fork result (the child session id).
    */
   async fork(
-    opts: { sessionId: SessionId; atSeq?: number },
-  ): Promise<RpcResult<{ sessionId: SessionId }>> {
+    opts: { sessionId: SessionId; atSeq?: number; agentPreset?: string },
+  ): Promise<RpcResult<{ sessionId: SessionId; agentPreset?: string }>> {
     try {
       const source = this.summaries.find(s => s.sessionId === opts.sessionId)
       const { result } = await this.api.sessions.fork({
         sessionId: opts.sessionId,
         ...opts.atSeq === undefined ? {} : { atSeq: opts.atSeq },
+        ...opts.agentPreset === undefined ? {} : { agentPreset: opts.agentPreset },
       })
       const childId = result.ok
         ? result.value.sessionId
@@ -594,6 +595,11 @@ export class SessionManager {
           sessionId: childId, updatedAt: Date.now(), running: false, blank: false,
           parentSessionId: opts.sessionId,
           ...(source?.cwd !== undefined ? { cwd: source.cwd } : {}),
+          ...result.ok && result.value.agentPreset !== undefined
+            ? { agentPreset: result.value.agentPreset }
+            : opts.agentPreset !== undefined
+              ? { agentPreset: opts.agentPreset }
+              : {},
         } })
       }
       return result

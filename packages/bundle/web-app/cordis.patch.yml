@@ -294,6 +294,23 @@
     - id: ui-trajectory
       name: '@deepseek-ai/dsh-client-ui-trajectory'
 
+    # Read-only Docker inspection beside Chat and Trajectory. A composition
+    # without a mounted Docker seam still loads the tab: it reports an
+    # unreachable engine as an empty state rather than failing.
+    # The Monaco distribution reaches the browser through its own host route:
+    # the plugin channel serves one file per plugin, and Monaco is many.
+    - id: monaco-assets
+      name: '@deepseek-ai/dsh-host-monaco-assets'
+
+    - id: ui-docker
+      name: '@deepseek-ai/dsh-client-ui-docker'
+
+    # A Monaco buffer over the workspace, beside the Docker tab. Saves carry
+    # the version the file was read at, so a concurrent agent edit is refused
+    # rather than overwritten.
+    - id: ui-editor
+      name: '@deepseek-ai/dsh-client-ui-editor'
+
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #
 # Every row below composes what ONE agent contributes to the host registries:

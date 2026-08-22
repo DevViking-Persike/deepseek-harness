@@ -791,6 +791,29 @@ describe('remaining branches', () => {
     })])
   })
 
+  it('carries an explicit continuation preset onto the synthesized child summary', async () => {
+    const api = new FakeApiClient()
+    const forkPayloads: unknown[] = []
+    api.onFork = (payload: unknown) => {
+      forkPayloads.push(payload)
+      return Promise.resolve(ok({ sessionId: 'fk-child' as SessionId, agentPreset: 'minimal' }))
+    }
+    const manager = new SessionManager(api, fakeRemote())
+
+    const result = await manager.fork({ sessionId: S1, agentPreset: 'minimal' })
+
+    // The wire carries the pick; the echoed composition lands on the child
+    // row so the opened header names what the continuation runs.
+    expect(forkPayloads).toEqual([{ sessionId: S1, agentPreset: 'minimal' }])
+    expect(result.ok).toBe(true)
+    expect(manager.getListSnapshot().items).toEqual([expect.objectContaining({
+      sessionId: 'fk-child',
+      parentSessionId: S1,
+      blank: false,
+      agentPreset: 'minimal',
+    })])
+  })
+
   it('reconciles a preallocated id after an ordinary transport failure', async () => {
     const api = new FakeApiClient()
     api.onCreate = () => Promise.reject(new Error('response lost'))

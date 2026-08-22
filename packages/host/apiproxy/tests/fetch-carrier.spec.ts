@@ -223,6 +223,52 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
         return { rpcId: request.rpcId, result: { ok: true, value: { skills: [{ name: 'commit-helper', description: 'Git commits', modelInvocable: true }] } } }
       },
     },
+    editor: {
+      async languageServers(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { servers: [] } } }
+      },
+      async listDir(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: '/w', root: '/w', entries: [] } } }
+      },
+      async readFile(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path, content: '', version: 'v1' } } }
+      },
+      async writeFile(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path, version: 'v2' } } }
+      },
+    },
+    docker: {
+      async engineStatus(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { status: { running: true, startable: false, installable: false } } } }
+      },
+      async startEngine(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { status: { running: true, startable: false, installable: false }, output: '' } } }
+      },
+      async installEngine(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { status: { running: false, startable: true, installable: false }, output: '' } } }
+      },
+      async control(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { container: { id: request.payload.container, name: request.payload.container, image: 'nginx', state: 'running', status: 'Up', ports: [], createdAt: '0' } } } }
+      },
+      async listContainers(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { containers: [] } } }
+      },
+      async listImages(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { images: [] } } }
+      },
+      async logs(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { container: request.payload.container, content: '', truncated: false } } }
+      },
+      async browseCompose(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path ?? '/h', home: '/h', crumbs: [], entries: [], truncated: false } } }
+      },
+      async composeUp(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { project: request.payload.project ?? 'p', output: '', containers: [] } } }
+      },
+      async composeDown(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { project: request.payload.project ?? 'p', output: '', containers: [] } } }
+      },
+    },
     goals: {
       async create(request) {
         return { rpcId: request.rpcId, result: { ok: false, error: { code: 'internal', message: 'stub', details: {} } } }

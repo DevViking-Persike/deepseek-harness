@@ -1672,6 +1672,19 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
     return Promise.resolve({ rpcId: request.rpcId, result: { ok: false, error } })
   }
 
+  /** The docker.* refusal of a fixture that mounts no Docker seam. */
+  const dockerUnavailable = {
+    code: 'docker-unavailable' as const,
+    message: 'fixture composition mounts no Docker seam',
+    details: {},
+  }
+
+  const editorUnavailable = {
+    code: 'editor-unavailable' as const,
+    message: 'fixture composition mounts no filesystem seam',
+    details: {},
+  }
+
   const summaryOf = (id: SessionId): SessionSummary | undefined => sessions.find(s => s.sessionId === id)
   /** Shared session guard for sessionId-addressed catalog routes: the error
    *  response when the session is unknown, undefined when it exists. */
@@ -2883,6 +2896,38 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         })
       },
     },
+    editor: {
+      languageServers: request => ok(request, { servers: [] }),
+      // The fixture serves no host filesystem, so the editor answers the same
+      // absent-seam state a composition without an fs provider answers.
+      listDir: request => err(request, editorUnavailable),
+      readFile: request => err(request, editorUnavailable),
+      writeFile: request => err(request, editorUnavailable),
+    },
+    docker: {
+      // The fixture composition mounts no Docker seam, so every row answers
+      // the same empty state a real host without a provider answers.
+      engineStatus: request => ok(request, {
+        status: { running: false, startable: false, installable: false, detail: dockerUnavailable.message },
+      }),
+      startEngine: request => err(request, dockerUnavailable),
+      installEngine: request => err(request, dockerUnavailable),
+      listContainers: request => err(request, dockerUnavailable),
+      control: request => err(request, dockerUnavailable),
+      listImages: request => err(request, dockerUnavailable),
+      logs: request => err(request, dockerUnavailable),
+      // Browsing needs no engine, but the fixture serves no host filesystem
+      // either, so it answers an empty home level rather than a refusal.
+      browseCompose: request => ok(request, {
+        path: request.payload.path ?? '/',
+        home: '/',
+        crumbs: [{ name: '/', path: '/', directory: true, hidden: false }],
+        entries: [],
+        truncated: false,
+      }),
+      composeUp: request => err(request, dockerUnavailable),
+      composeDown: request => err(request, dockerUnavailable),
+    },
     goals: {
       // Compatibility face only: old API Proxy payloads and acknowledgements
       // adapt to the canonical fixture Remote implementation above.
@@ -3204,6 +3249,20 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'workspace.insertSessionBefore': return this.api.workspace.insertSessionBefore(request)
       case 'workspace.archiveSession': return this.api.workspace.archiveSession(request)
       case 'skill.list': return this.api.skills.list(request)
+      case 'editor.languageServers': return this.api.editor.languageServers(request, signal)
+      case 'editor.listDir': return this.api.editor.listDir(request, signal)
+      case 'editor.readFile': return this.api.editor.readFile(request, signal)
+      case 'editor.writeFile': return this.api.editor.writeFile(request, signal)
+      case 'docker.engineStatus': return this.api.docker.engineStatus(request, signal)
+      case 'docker.startEngine': return this.api.docker.startEngine(request, signal)
+      case 'docker.installEngine': return this.api.docker.installEngine(request, signal)
+      case 'docker.control': return this.api.docker.control(request, signal)
+      case 'docker.listContainers': return this.api.docker.listContainers(request, signal)
+      case 'docker.listImages': return this.api.docker.listImages(request, signal)
+      case 'docker.logs': return this.api.docker.logs(request, signal)
+      case 'docker.browseCompose': return this.api.docker.browseCompose(request, signal)
+      case 'docker.composeUp': return this.api.docker.composeUp(request, signal)
+      case 'docker.composeDown': return this.api.docker.composeDown(request, signal)
       case 'agentPreset.list': return this.api.agentPresets.list(request)
       case 'agentPreset.select': return this.api.agentPresets.select(request)
       case 'agentPreset.read': return this.api.agentPresets.read(request)
