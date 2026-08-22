@@ -1,0 +1,217 @@
+.root {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  padding: 12px 16px 24px;
+  overflow: auto;
+}
+
+.toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.refresh {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+}
+
+.refresh:hover:enabled {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.refresh:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.refresh:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+  font-weight: 500;
+}
+
+.note {
+  margin: 0;
+  padding: 8px 0;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.rowLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
+}
+
+.rowActions {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.rowAction {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  font: var(--dsw-font-xxs-12);
+}
+
+.rowAction:hover:enabled {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.rowAction:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.rowAction:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.rowHeader {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: var(--dsw-font-xxs-12);
+}
+
+.rowHeader:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.rowHeader:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: -1px;
+}
+
+.state {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--dsw-alias-label-tertiary);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.stateRunning {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.name {
+  flex: none;
+  font-weight: 500;
+}
+
+.image,
+.compose,
+.ports,
+.status {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status {
+  flex: 1 1 auto;
+  text-align: right;
+}
+
+.logs {
+  /* An elevated surface whose log text scrolls: the thumb rebinds to the l2
+     pair, which the l1 default differs from only in the dark palette. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+
+  border-top: 1px solid var(--dsw-alias-border-l2);
+  padding: 6px 10px 8px;
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.logText {
+  max-height: 320px;
+  margin: 0;
+  overflow: auto;
+  color: var(--dsw-alias-label-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  font: var(--dsw-font-markdown-code-block-small);
+}
+
+.imageRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.size {
+  flex: 1 1 auto;
+  color: var(--dsw-alias-label-tertiary);
+  text-align: right;
+}

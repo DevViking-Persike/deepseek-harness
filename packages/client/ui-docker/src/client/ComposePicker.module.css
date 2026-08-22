@@ -1,0 +1,221 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  /* Above the conversation chrome: the dialog owns the screen while it is
+     open, so nothing behind it stays clickable or legible through it. */
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dsw-alias-bg-mask-1);
+  backdrop-filter: blur(2px);
+}
+
+.panel {
+  /* The panel is an elevated surface and its entry list scrolls, so the thumb
+     rebinds to the l2 pair; the l1 thumb differs only in the dark palette. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(640px, 92vw);
+  max-height: min(560px, 86vh);
+  padding: 16px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  /* The same opaque dialog surface the settings modal uses, so both read as
+     one elevation and the dark theme keeps a dark panel rather than the pale
+     `bg-overlay` gray. */
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-shadow-lv3);
+}
+
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-s-14);
+}
+
+.close {
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+}
+
+.close:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.crumbs {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: center;
+}
+
+.crumb {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+}
+
+.crumb:hover:enabled {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.crumb:disabled {
+  cursor: default;
+}
+
+.entries {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.entry {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+  text-align: left;
+}
+
+.entry:hover:enabled {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.entry:disabled {
+  cursor: default;
+}
+
+.hidden {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.selected {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.icon {
+  flex: none;
+}
+
+.entryName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footer {
+  display: flex;
+  flex: none;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--dsw-alias-border-l1);
+}
+
+.selection {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--dsw-font-xxs-12);
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.up,
+.down {
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+}
+
+.up {
+  color: var(--dsw-alias-label-primary);
+}
+
+.down {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.up:hover:enabled,
+.down:hover:enabled {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.up:disabled,
+.down:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.note {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.outcome {
+  flex: none;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.output {
+  margin: 6px 0 0;
+  padding: 8px;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  /* One layer below the dialog surface, so the output block stays visible as
+     a recessed area instead of merging into the panel. */
+  background: var(--dsw-alias-bg-layer-3);
+  font: var(--dsw-font-markdown-code-block-small);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
