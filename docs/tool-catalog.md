@@ -41,6 +41,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflowEngine`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
+| `@deepseek-ai/dsh-tool-docker` | `docker_compose_down`, `docker_compose_up`, `docker_images`, `docker_logs`, `docker_ps` | `ctx.tools`, `ctx.docker`, `ctx.systemPrompt` | `tool/call`, `tool/result`, `container and Compose project state for the lifecycle tools` | - | The read-only tools ship enabled while the Compose lifecycle pair is opt-in (`compose`, default false), so a shipped tree normally exposes only docker_ps, docker_images, and docker_logs. The docker_logs description states the configured maxLogChars. Registration follows enablement, not backend availability: without a usable provider each call fails with a structured DockerError instead of removing the schema. |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 
@@ -2219,3 +2220,130 @@ Search the web for current information. Provide 1–4 queries in the required qu
 Source: [`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.ts)
 
 web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps.
+
+<a id="deepseek-aidsh-tool-docker"></a>
+
+## `@deepseek-ai/dsh-tool-docker`
+
+### `docker_compose_down`
+
+Stop and remove a Docker Compose project's containers.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "file": {
+      "type": "string",
+      "description": "Path to the compose file."
+    },
+    "project": {
+      "type": "string",
+      "description": "Explicit project name; defaults to the compose file's directory name."
+    }
+  },
+  "required": [
+    "file"
+  ]
+}
+```
+
+Source: [`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
+
+### `docker_compose_up`
+
+Start a Docker Compose project in the background and wait for its containers to become ready.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "file": {
+      "type": "string",
+      "description": "Path to the compose file."
+    },
+    "project": {
+      "type": "string",
+      "description": "Explicit project name; defaults to the compose file's directory name."
+    },
+    "services": {
+      "type": "array",
+      "description": "Start only these services. Omit to start every service.",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "file"
+  ]
+}
+```
+
+Source: [`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
+
+### `docker_images`
+
+List locally available Docker images with their tags and sizes.
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+Source: [`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
+
+### `docker_logs`
+
+Read a container's recent log output. Returns at most 40000 characters, keeping the newest entries.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "container": {
+      "type": "string",
+      "description": "Container name or id."
+    },
+    "tail": {
+      "type": "number",
+      "description": "Number of trailing lines to read."
+    },
+    "since": {
+      "type": "string",
+      "description": "Only entries at or after this ISO-8601 timestamp."
+    }
+  },
+  "required": [
+    "container"
+  ]
+}
+```
+
+Source: [`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
+
+### `docker_ps`
+
+List Docker containers. Running containers only by default; set all to include stopped ones.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "all": {
+      "type": "boolean",
+      "description": "Include stopped containers. Defaults to false."
+    },
+    "project": {
+      "type": "string",
+      "description": "Restrict to one Docker Compose project name."
+    }
+  }
+}
+```
+
+Source: [`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
+
+The read-only tools ship enabled while the Compose lifecycle pair is opt-in (`compose`, default false), so a shipped tree normally exposes only docker_ps, docker_images, and docker_logs. The docker_logs description states the configured maxLogChars. Registration follows enablement, not backend availability: without a usable provider each call fails with a structured DockerError instead of removing the schema.

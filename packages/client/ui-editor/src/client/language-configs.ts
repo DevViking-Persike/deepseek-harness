@@ -36,6 +36,7 @@ export interface RawLanguageConfig {
   onEnterRules?: RawOnEnterRule[]
 }
 
+/** Indentation and Enter-key rules per Monaco language id. */
 export const LANGUAGE_CONFIGS: Readonly<Record<string, RawLanguageConfig>> = {
   typescript: {
     'indentationRules': {

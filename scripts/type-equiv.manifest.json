@@ -1536,6 +1536,51 @@
       "source": "packages/session-query/session-query/src/types.ts"
     },
     {
+      "doc": "docs/subsystems/docker.md",
+      "symbol": "DockerContainerState",
+      "source": "packages/docker/docker/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/docker.md",
+      "symbol": "DockerContainer",
+      "source": "packages/docker/docker/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/docker.md",
+      "symbol": "DockerListRequest",
+      "source": "packages/docker/docker/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/docker.md",
+      "symbol": "DockerImage",
+      "source": "packages/docker/docker/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/docker.md",
+      "symbol": "DockerLogsRequest",
+      "source": "packages/docker/docker/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/docker.md",
+      "symbol": "DockerLogsResult",
+      "source": "packages/docker/docker/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/docker.md",
+      "symbol": "DockerComposeRequest",
+      "source": "packages/docker/docker/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/docker.md",
+      "symbol": "DockerComposeResult",
+      "source": "packages/docker/docker/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/docker.md",
+      "symbol": "DockerProvider",
+      "source": "packages/docker/docker/src/types.ts"
+    },
+    {
       "doc": "docs/subsystems/subprocess.md",
       "symbol": "SubprocessSpawnSpec",
       "source": "packages/subprocess/subprocess/src/types.ts"

@@ -43,6 +43,7 @@
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
+| `@deepseek-ai/dsh-tool-docker` | `docker_compose_down`、`docker_compose_up`、`docker_images`、`docker_logs`、`docker_ps` | `ctx.tools`、`ctx.docker`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`生命周期工具涉及的容器与 Compose 项目状态` | - | 只读工具默认启用，而 Compose 生命周期这对工具需显式开启（`compose`，默认 false），因此已发布的插件树通常只暴露 docker_ps、docker_images 和 docker_logs。docker_logs 的描述会陈述已配置的 maxLogChars。注册遵循启用状态而非后端可用性：没有可用提供方时，每次调用以结构化 DockerError 失败，而不是移除 schema。 |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 
@@ -2223,3 +2224,130 @@ todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为
 来源：[`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.ts)
 
 web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。
+
+<a id="deepseek-aidsh-tool-docker"></a>
+
+## `@deepseek-ai/dsh-tool-docker`
+
+### `docker_compose_down`
+
+停止并删除某个 Docker Compose 项目的容器。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "file": {
+      "type": "string",
+      "description": "Path to the compose file."
+    },
+    "project": {
+      "type": "string",
+      "description": "Explicit project name; defaults to the compose file's directory name."
+    }
+  },
+  "required": [
+    "file"
+  ]
+}
+```
+
+来源：[`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
+
+### `docker_compose_up`
+
+在后台启动某个 Docker Compose 项目，并等待其容器就绪。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "file": {
+      "type": "string",
+      "description": "Path to the compose file."
+    },
+    "project": {
+      "type": "string",
+      "description": "Explicit project name; defaults to the compose file's directory name."
+    },
+    "services": {
+      "type": "array",
+      "description": "Start only these services. Omit to start every service.",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "file"
+  ]
+}
+```
+
+来源：[`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
+
+### `docker_images`
+
+列出本地可用的 Docker 镜像及其 tag 与尺寸。
+
+```json
+{
+  "type": "object",
+  "properties": {}
+}
+```
+
+来源：[`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
+
+### `docker_logs`
+
+读取某个容器最近的日志输出。最多返回 40000 个字符，保留最新的条目。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "container": {
+      "type": "string",
+      "description": "Container name or id."
+    },
+    "tail": {
+      "type": "number",
+      "description": "Number of trailing lines to read."
+    },
+    "since": {
+      "type": "string",
+      "description": "Only entries at or after this ISO-8601 timestamp."
+    }
+  },
+  "required": [
+    "container"
+  ]
+}
+```
+
+来源：[`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
+
+### `docker_ps`
+
+列出 Docker 容器。默认只列出运行中的容器；设置 all 可包含已停止的容器。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "all": {
+      "type": "boolean",
+      "description": "Include stopped containers. Defaults to false."
+    },
+    "project": {
+      "type": "string",
+      "description": "Restrict to one Docker Compose project name."
+    }
+  }
+}
+```
+
+来源：[`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
+
+只读工具默认启用，而 Compose 生命周期这对工具需显式开启（`compose`，默认 false），因此已发布的插件树通常只暴露 docker_ps、docker_images 和 docker_logs。docker_logs 的描述会陈述已配置的 maxLogChars。注册遵循启用状态而非后端可用性：没有可用提供方时，每次调用以结构化 DockerError 失败，而不是移除 schema。

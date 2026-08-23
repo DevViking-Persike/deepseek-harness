@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-21-agent-preset-selector-in-the-composer.md
+2026-08-21-agent-preset-selector-in-the-composer.md: 5de2cd98f06c569f4d42bf5b830769bf1e891884
+2026-08-21-agent-preset-selector-in-the-composer.zh.md: 54ef69fbda5e89e89258f8a0681d9c48d25b8cca

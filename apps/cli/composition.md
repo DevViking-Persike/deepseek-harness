@@ -54,6 +54,18 @@ flowchart LR
   cfg --> plugin_dsh_base_session_telemetry_otel
   plugin_dsh_base_subprocess["subprocess<br/>@deepseek-ai/dsh-subprocess-local"]
   cfg --> plugin_dsh_base_subprocess
+  plugin_dsh_base_mcp_dbx["mcp-dbx<br/>@deepseek-ai/dsh-mcp-client"]
+  cfg --> plugin_dsh_base_mcp_dbx
+  plugin_dsh_base_lsp["lsp<br/>@deepseek-ai/dsh-lsp"]
+  cfg --> plugin_dsh_base_lsp
+  plugin_dsh_base_lsp_stdio["lsp-stdio<br/>@deepseek-ai/dsh-lsp-stdio"]
+  cfg --> plugin_dsh_base_lsp_stdio
+  plugin_dsh_base_docker["docker<br/>@deepseek-ai/dsh-docker"]
+  cfg --> plugin_dsh_base_docker
+  plugin_dsh_base_docker_local["docker-local<br/>@deepseek-ai/dsh-docker-local"]
+  cfg --> plugin_dsh_base_docker_local
+  plugin_dsh_base_tool_docker["tool-docker<br/>@deepseek-ai/dsh-tool-docker"]
+  cfg --> plugin_dsh_base_tool_docker
   plugin_dsh_base_sandbox["sandbox<br/>@deepseek-ai/dsh-sandbox-local"]
   cfg --> plugin_dsh_base_sandbox
   plugin_dsh_base_sandbox_policy["sandbox-policy<br/>@deepseek-ai/dsh-sandbox-policy"]
@@ -164,6 +176,12 @@ flowchart LR
   cfg --> plugin_dsh_base_fs_sandbox
   plugin_dsh_base_llm_deepseek["llm-deepseek<br/>@deepseek-ai/dsh-llm-deepseek"]
   cfg --> plugin_dsh_base_llm_deepseek
+  plugin_dsh_base_llm_cliproxy["llm-cliproxy<br/>@deepseek-ai/dsh-llm-cliproxy"]
+  cfg --> plugin_dsh_base_llm_cliproxy
+  plugin_dsh_base_llm_claude_code["llm-claude-code<br/>@deepseek-ai/dsh-llm-claude-code"]
+  cfg --> plugin_dsh_base_llm_claude_code
+  plugin_dsh_base_llm_codex["llm-codex<br/>@deepseek-ai/dsh-llm-codex"]
+  cfg --> plugin_dsh_base_llm_codex
 ```
 
 | Plugin id | Package / module |
@@ -191,6 +209,12 @@ flowchart LR
 | `session-projection` | `@deepseek-ai/dsh-session-projection` |
 | `session-telemetry-otel` | `@deepseek-ai/dsh-session-telemetry-otel` |
 | `subprocess` | `@deepseek-ai/dsh-subprocess-local` |
+| `mcp-dbx` | `@deepseek-ai/dsh-mcp-client` |
+| `lsp` | `@deepseek-ai/dsh-lsp` |
+| `lsp-stdio` | `@deepseek-ai/dsh-lsp-stdio` |
+| `docker` | `@deepseek-ai/dsh-docker` |
+| `docker-local` | `@deepseek-ai/dsh-docker-local` |
+| `tool-docker` | `@deepseek-ai/dsh-tool-docker` |
 | `sandbox` | `@deepseek-ai/dsh-sandbox-local` |
 | `sandbox-policy` | `@deepseek-ai/dsh-sandbox-policy` |
 | `bash-sandbox` | `@deepseek-ai/dsh-bash-sandbox` |
@@ -246,6 +270,9 @@ flowchart LR
 | `agent-loop` | `@deepseek-ai/dsh-agent-loop` |
 | `fs-sandbox` | `@deepseek-ai/dsh-fs-sandbox` |
 | `llm-deepseek` | `@deepseek-ai/dsh-llm-deepseek` |
+| `llm-cliproxy` | `@deepseek-ai/dsh-llm-cliproxy` |
+| `llm-claude-code` | `@deepseek-ai/dsh-llm-claude-code` |
+| `llm-codex` | `@deepseek-ai/dsh-llm-codex` |
 
 Source config: [`packages/bundle/base/cordis.patch.yml`](../../packages/bundle/base/cordis.patch.yml).
 

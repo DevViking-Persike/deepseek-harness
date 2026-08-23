@@ -63,6 +63,8 @@ import * as ToolTeam from '@deepseek-ai/dsh-experimental-tool-agent-team'
 import * as ToolTodo from '@deepseek-ai/dsh-tool-todo'
 import * as ToolSubagent from '@deepseek-ai/dsh-tool-subagent'
 import * as ToolWeb from '@deepseek-ai/dsh-tool-web'
+import DockerRuntime from '@deepseek-ai/dsh-docker'
+import * as ToolDocker from '@deepseek-ai/dsh-tool-docker'
 import VmWorkflowEngine from '@deepseek-ai/dsh-workflow-worker-thread'
 import * as ToolRalph from '@deepseek-ai/dsh-tool-ralph'
 import * as ToolWorkflow from '@deepseek-ai/dsh-tool-workflow'
@@ -605,6 +607,21 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-docker',
+    dir: 'tool-docker',
+    source: 'packages/docker/tool-docker/src/index.ts',
+    requires: ['ctx.tools', 'ctx.docker', 'ctx.systemPrompt'],
+    writes: ['tool/call', 'tool/result', 'container and Compose project state for the lifecycle tools'],
+    async mount(ctx) {
+      // The seam alone satisfies the inject; schemas do not depend on a
+      // registered backend. Compose is opt-in, so the harvest enables it.
+      await ctx.plugin(DockerRuntime, {})
+      await ctx.plugin(ToolDocker, { compose: true })
+    },
+    note:
+      'The read-only tools ship enabled while the Compose lifecycle pair is opt-in (`compose`, default false), so a shipped tree normally exposes only docker_ps, docker_images, and docker_logs. The docker_logs description states the configured maxLogChars. Registration follows enablement, not backend availability: without a usable provider each call fails with a structured DockerError instead of removing the schema.',
   },
 ]
 

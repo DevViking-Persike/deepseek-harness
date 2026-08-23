@@ -141,7 +141,10 @@ export function buildTheme(palette: ResolvedPalette, dark: boolean): {
   }
 }
 
-/** Whether the page is currently on the dark palette. */
+/**
+ * Whether the page is currently on the dark palette.
+ * @returns true when the dark palette is active.
+ */
 export function isDarkTheme(): boolean {
   return document.body.hasAttribute('data-ds-dark-theme')
 }

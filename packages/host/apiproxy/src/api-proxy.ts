@@ -142,6 +142,7 @@ export const DEFAULT_COLD_BLANK_PROBE_MAX_BYTES = 1024
  */
 export const EDITOR_MAX_FILE_BYTES = 5 * 1024 * 1024
 
+/** Characters of container log the docker domain returns before truncating. */
 export const DEFAULT_DOCKER_LOG_MAX_CHARS = 40_000
 
 /** Default cap on characters one Compose lifecycle response carries. */
@@ -1151,7 +1152,11 @@ function dockerImageEntry(image: DockerImage): DockerImageEntry {
   }
 }
 
-/** Whether a file name is one this browser offers as a compose candidate. */
+/**
+ * Whether a file name is one this browser offers as a compose candidate.
+ * @param name - the directory entry's base name.
+ * @returns true when the name is a recognized compose file.
+ */
 export function isComposeFileName(name: string): boolean {
   return COMPOSE_FILE_PATTERN.test(name)
 }

@@ -618,6 +618,81 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'docker',
+    summary: 'The Docker access service, registered as `ctx.docker` (one instance per context).',
+    description: 'The Docker access service, registered as `ctx.docker` (one instance per context).\n\nSelection semantics, resolved at execution time and never order-dependent:\n\n- A configured id that is registered and `available()` → that provider.\n- A configured id not registered → `DOCKER_PROVIDER_CONFIGURED_MISSING`.\n- A configured id registered but unavailable → `DOCKER_PROVIDER_CONFIGURED_UNAVAILABLE`.\n- No id configured, exactly one registered usable provider → that provider.\n- No id configured, several usable providers → `DOCKER_PROVIDER_AMBIGUOUS`.\n- No id configured, no usable provider → `DOCKER_PROVIDER_UNAVAILABLE`.',
+    methods: [
+      {
+        signature: 'registerProvider(provider: DockerProvider): () => void',
+        description: 'Register one container backend.',
+        parameters: [{ name: 'provider', description: 'the backend to add.' }],
+        returns: 'a disposer that removes it; runs with the calling fiber.',
+      },
+      {
+        signature: 'providerIds(): readonly string[]',
+        description: 'Ids of every registered backend, in registration order. Selection never consults this order; it exists for diagnostics and for the UI\'s provider display.',
+        parameters: [],
+        returns: 'the registered provider ids.',
+      },
+      {
+        signature: 'async engineStatus(signal?: AbortSignal): Promise<DockerEngineStatus>',
+        description: 'Report whether an engine is reachable and what can be done about it. A composition whose backends cannot manage an engine answers a status with every capability false, never an error: the absence of the capability is itself the answer a UI renders.',
+        parameters: [{ name: 'signal', description: 'cancellation for the underlying probe.' }],
+        returns: 'the engine status.',
+      },
+      {
+        signature: 'async startEngine(signal?: AbortSignal): Promise<DockerEngineResult>',
+        description: 'Start the local container runtime.',
+        parameters: [{ name: 'signal', description: 'cancellation for the underlying command.' }],
+        returns: 'the settled status and the command output.',
+        throws: ['{DockerError} `DOCKER_ENGINE_UNMANAGEABLE` when no backend can start one.'],
+      },
+      {
+        signature: 'async installEngine(signal?: AbortSignal): Promise<DockerEngineResult>',
+        description: 'Install a container runtime on this machine.',
+        parameters: [{ name: 'signal', description: 'cancellation for the underlying command.' }],
+        returns: 'the settled status and the command output.',
+        throws: ['{DockerError} `DOCKER_ENGINE_UNMANAGEABLE` when no backend can install one.'],
+      },
+      {
+        signature: 'async list(request: DockerListRequest = {}, signal?: AbortSignal): Promise<readonly DockerContainer[]>',
+        description: 'List containers on the selected backend.',
+        parameters: [{ name: 'request', description: 'listing filters.' }, { name: 'signal', description: 'cancellation for the engine call.' }],
+        returns: 'the matching containers.',
+      },
+      {
+        signature: 'async control(request: DockerControlRequest, signal?: AbortSignal): Promise<DockerContainer>',
+        description: 'Apply one lifecycle action to a single container on the selected backend.',
+        parameters: [{ name: 'request', description: 'the container and the action to apply.' }, { name: 'signal', description: 'cancellation for the engine call.' }],
+        returns: 'the container\'s state after the action settled.',
+      },
+      {
+        signature: 'async images(signal?: AbortSignal): Promise<readonly DockerImage[]>',
+        description: 'List locally available images on the selected backend.',
+        parameters: [{ name: 'signal', description: 'cancellation for the engine call.' }],
+        returns: 'the local images.',
+      },
+      {
+        signature: 'async logs(request: DockerLogsRequest, signal?: AbortSignal): Promise<DockerLogsResult>',
+        description: 'Read one container\'s logs from the selected backend.',
+        parameters: [{ name: 'request', description: 'container and range to read.' }, { name: 'signal', description: 'cancellation for the engine call.' }],
+        returns: 'the collected log text.',
+      },
+      {
+        signature: 'async composeUp(request: DockerComposeRequest, signal?: AbortSignal): Promise<DockerComposeResult>',
+        description: 'Start a Compose project on the selected backend.',
+        parameters: [{ name: 'request', description: 'compose file, project, and service selection.' }, { name: 'signal', description: 'cancellation for the engine call.' }],
+        returns: 'the settled project state.',
+      },
+      {
+        signature: 'async composeDown(request: DockerComposeRequest, signal?: AbortSignal): Promise<DockerComposeResult>',
+        description: 'Stop and remove a Compose project\'s containers on the selected backend.',
+        parameters: [{ name: 'request', description: 'compose file, project, and service selection.' }, { name: 'signal', description: 'cancellation for the engine call.' }],
+        returns: 'the settled project state.',
+      },
+    ],
+  },
+  {
     key: 'e2b',
     summary: 'Creates one lazily consumable E2B SDK handle and deletes the sandbox at timeout or disposal.',
     description: 'Creates one lazily consumable E2B SDK handle and deletes the sandbox at timeout or disposal. Creation begins at plugin construction; adapters await getSandbox before their first operation.',
@@ -970,6 +1045,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Register a provider, atomically reserving its id and every normalized extension. Any conflict or invalid input publishes nothing and throws `LspError`; the returned disposer releases all reservations. Disposed with the calling fiber.',
         parameters: [{ name: 'provider', description: 'the backend to register.' }],
         returns: 'a synchronous disposer releasing the id and all extension reservations.',
+      },
+      {
+        signature: 'describeProviders(): readonly { readonly id: LspProviderId; readonly extensions: readonly string[] }[]',
+        description: 'Report the registered providers and the extensions each serves. Reads the registry only — no language server is contacted and none is spawned.',
+        parameters: [],
+        returns: 'one entry per provider, in registration order.',
       },
       {
         signature: 'query(request: LspQueryRequest, signal?: AbortSignal): Promise<LspQueryResult>',
@@ -3063,6 +3144,58 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DirectoryRegistrationHandle',
     declaration: 'export interface DirectoryRegistrationHandle {\n    (): void;\n    replace(entries: readonly LlmConfigurableProvider[]): void;\n}',
+  },
+  {
+    name: 'DockerComposeRequest',
+    declaration: 'export interface DockerComposeRequest {\n    readonly file: string;\n    readonly project?: string;\n    readonly services?: readonly string[];\n}',
+  },
+  {
+    name: 'DockerComposeResult',
+    declaration: 'export interface DockerComposeResult {\n    readonly project: string;\n    readonly output: string;\n    readonly containers: readonly DockerContainer[];\n}',
+  },
+  {
+    name: 'DockerContainer',
+    declaration: 'export interface DockerContainer {\n    readonly id: string;\n    readonly name: string;\n    readonly image: string;\n    readonly state: DockerContainerState;\n    readonly status: string;\n    readonly project?: string;\n    readonly service?: string;\n    readonly ports: readonly string[];\n    readonly createdAt: string;\n}',
+  },
+  {
+    name: 'DockerContainerState',
+    declaration: 'export type DockerContainerState = \'created\' | \'running\' | \'paused\' | \'restarting\' | \'exited\' | \'dead\';',
+  },
+  {
+    name: 'DockerControlAction',
+    declaration: 'export type DockerControlAction = \'start\' | \'stop\' | \'restart\';',
+  },
+  {
+    name: 'DockerControlRequest',
+    declaration: 'export interface DockerControlRequest {\n    readonly container: string;\n    readonly action: DockerControlAction;\n}',
+  },
+  {
+    name: 'DockerEngineResult',
+    declaration: 'export interface DockerEngineResult {\n    readonly status: DockerEngineStatus;\n    readonly output: string;\n}',
+  },
+  {
+    name: 'DockerEngineStatus',
+    declaration: 'export interface DockerEngineStatus {\n    readonly running: boolean;\n    readonly startable: boolean;\n    readonly installable: boolean;\n    readonly runtime?: string;\n    readonly detail?: string;\n}',
+  },
+  {
+    name: 'DockerImage',
+    declaration: 'export interface DockerImage {\n    readonly id: string;\n    readonly tags: readonly string[];\n    readonly size: number;\n    readonly createdAt: string;\n}',
+  },
+  {
+    name: 'DockerListRequest',
+    declaration: 'export interface DockerListRequest {\n    readonly all?: boolean;\n    readonly project?: string;\n}',
+  },
+  {
+    name: 'DockerLogsRequest',
+    declaration: 'export interface DockerLogsRequest {\n    readonly container: string;\n    readonly tail?: number;\n    readonly since?: string;\n}',
+  },
+  {
+    name: 'DockerLogsResult',
+    declaration: 'export interface DockerLogsResult {\n    readonly container: string;\n    readonly content: string;\n    readonly truncated: boolean;\n}',
+  },
+  {
+    name: 'DockerProvider',
+    declaration: 'export interface DockerProvider {\n    readonly id: string;\n    available: () => Promise<boolean>;\n    engineStatus?: (signal?: AbortSignal) => Promise<DockerEngineStatus>;\n    startEngine?: (signal?: AbortSignal) => Promise<DockerEngineResult>;\n    installEngine?: (signal?: AbortSignal) => Promise<DockerEngineResult>;\n    list: (request: DockerListRequest, signal?: AbortSignal) => Promise<readonly DockerContainer[]>;\n    control: (request: DockerControlRequest, signal?: AbortSignal) => Promise<DockerContainer>;\n    images: (signal?: AbortSignal) => Promise<readonly DockerImage[]>;\n    logs: (request: DockerLogsRequest, signal?: AbortSignal) => Promise<DockerLogsResult>;\n    composeUp: (request: DockerComposeRequest, signal?: AbortSignal) => Promise<DockerComposeResult>;\n    composeDown: (request: DockerComposeRequest, signal?: AbortSignal) => Promise<DockerComposeResult>;\n}',
   },
   {
     name: 'Domain',

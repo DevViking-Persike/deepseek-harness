@@ -26,6 +26,7 @@ export interface FileIcon {
  * actually uses.
  */
 export const FOLDER_ICON: FileIcon = { glyph: '', color: '#c99a3f' }
+/** The open-directory mark; the tree draws the pictogram and uses only its color. */
 export const FOLDER_OPEN_ICON: FileIcon = { glyph: '', color: '#e8b84b' }
 
 /**

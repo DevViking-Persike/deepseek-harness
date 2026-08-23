@@ -496,6 +496,15 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Producers (background bash, PTY sends, and subagent delegations) register running work; tool-jobs is the model-facing controller that reads, lists, and kills it; jobs-local is the process-local registry.',
   },
   {
+    key: 'docker',
+    pkg: 'docker',
+    title: 'Docker access provider registry',
+    mode: 'seam',
+    implementations: ['docker-local'],
+    consumers: ['tool-docker'],
+    note: 'Container inspection, image listing, log reads, and Compose lifecycle share one ctx.docker seam; tool-docker owns the stable model-facing names.',
+  },
+  {
     key: 'web',
     pkg: 'web',
     title: 'Web access provider registry',

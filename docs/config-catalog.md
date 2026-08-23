@@ -569,6 +569,76 @@ export interface Config {
 
 Source: [`packages/credentials/credentials-local/src/index.ts:55`](../packages/credentials/credentials-local/src/index.ts)
 
+<a id="deepseek-aidsh-docker"></a>
+
+## `@deepseek-ai/dsh-docker`
+
+```ts config-catalog
+/**
+ * Config for the Docker seam. `provider` pins which backend wins; it is
+ * optional because a single registered usable provider auto-selects.
+ * Operational overrides must feed this same field rather than introduce a
+ * hidden priority chain.
+ */
+export interface DockerRuntimeConfig {
+  /** Explicit provider id. Omitted = auto-select when exactly one is usable. */
+  readonly provider?: string
+}
+```
+
+Source: [`packages/docker/docker/src/index.ts:58`](../packages/docker/docker/src/index.ts)
+
+<a id="deepseek-aidsh-docker-local"></a>
+
+## `@deepseek-ai/dsh-docker-local`
+
+Requires: `docker` · `subprocess`
+
+```ts config-catalog
+/** Complete config after schemastery applies every field default; `projectRoot` has none. */
+type ResolvedConfig = Required<Omit<Config, 'projectRoot'>> & Pick<Config, 'projectRoot'>
+
+/** Plugin config: which CLI to run, where, and the limits each invocation carries. */
+export interface Config {
+  /** Executable name or absolute path of the Docker CLI. */
+  cli?: string
+  /** Working directory for invocations, and the root relative compose paths resolve against. Defaults to the harness process cwd. */
+  projectRoot?: string
+  /** Cooperative timeout for one inspection call. */
+  inspectTimeoutMs?: number
+  /** Cooperative timeout for one Compose lifecycle call. */
+  composeTimeoutMs?: number
+  /** Cap on collected output bytes of one invocation. */
+  maxOutputBytes?: number
+  /** Termination grace period handed to the subprocess seam. */
+  graceMs?: number
+  /** Trailing log lines used when a request states no `tail`. */
+  defaultLogTail?: number
+  /**
+   * Whether an unreachable engine may be started from the UI. Starting a
+   * daemon changes machine state outside the session, so a deployment that
+   * does not want that turns it off here.
+   */
+  allowEngineStart?: boolean
+  /**
+   * Whether a missing container runtime may be installed from the UI.
+   * Installation writes to the machine outside the workspace, so it is off by
+   * default and a deployment opts in.
+   */
+  allowEngineInstall?: boolean
+  /** VM manager that provides a Linux engine on macOS. */
+  engineVmCli?: string
+  /** Package manager used to install the runtime on macOS. */
+  engineMacInstaller?: string
+  /** Cooperative timeout for one engine start. */
+  engineStartTimeoutMs?: number
+  /** Cooperative timeout for one engine installation. */
+  engineInstallTimeoutMs?: number
+}
+```
+
+Source: [`packages/docker/docker-local/src/index.ts:83`](../packages/docker/docker-local/src/index.ts)
+
 <a id="deepseek-aidsh-e2b"></a>
 
 ## `@deepseek-ai/dsh-e2b`
@@ -814,6 +884,12 @@ export interface Config {
    * @default 1024
    */
   coldBlankProbeMaxBytes?: number
+  /**
+   * Cap on characters one `docker.logs` response carries. The newest text
+   * survives and the response reports `truncated`.
+   * @default 40000
+   */
+  dockerLogMaxChars?: number
 }
 ```
 
@@ -848,6 +924,25 @@ export interface Config {
 ```
 
 Source: [`packages/host/frontend-static/src/index.ts:28`](../packages/host/frontend-static/src/index.ts)
+
+<a id="deepseek-aidsh-host-monaco-assets"></a>
+
+## `@deepseek-ai/dsh-host-monaco-assets`
+
+Requires: `webServer`
+
+```ts config-catalog
+/** Complete config after schemastery applies every field default. */
+type ResolvedConfig = Required<Config>
+
+/** Plugin config: where the distribution is mounted. */
+export interface Config {
+  /** Absolute URL prefix the distribution is served under. */
+  route?: string
+}
+```
+
+Source: [`packages/host/monaco-assets/src/index.ts:37`](../packages/host/monaco-assets/src/index.ts)
 
 <a id="deepseek-aidsh-host-webserver"></a>
 
@@ -899,6 +994,182 @@ export interface Config {
 ```
 
 Source: [`packages/jobs/jobs-local/src/index.ts:31`](../packages/jobs/jobs-local/src/index.ts)
+
+<a id="deepseek-aidsh-llm-claude-code"></a>
+
+## `@deepseek-ai/dsh-llm-claude-code`
+
+Requires: `llm`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema and doubling
+ * as the `llm-claude-code` settings-section shape.
+ */
+export interface Config {
+  /** Anthropic API base (default `https://api.anthropic.com`). */
+  apiBase?: string
+  /** OAuth authorize endpoint override. */
+  authorizeUrl?: string
+  /** OAuth token endpoint override. */
+  tokenUrl?: string
+  /** Loopback port of the login control server (default 1458). */
+  controlPort?: number
+  /** Path of this plugin's credential document (default `$DSH_HOME/claude-code-oauth.json`). */
+  path?: string
+  /** CLIProxyAPI Claude auth file to import once at first boot (e.g. `~/.cli-proxy-api/claude-<email>.json`). */
+  importFrom?: string
+  /** Harness home override for the default credential path. */
+  dshHome?: string
+  /** Default per-request output cap (default 32,000); a model's own cap and explicit request values win. */
+  maxTokens?: number
+  /** Positive context capacity used when the selected model has no exact value (default 200,000). */
+  defaultContextWindow?: number
+  /** Advisory models; requests remain unrestricted. */
+  models?: ClaudeCodeCatalogModel[]
+  /** Maximum provider idle time while one stream read is outstanding (default five minutes). */
+  streamIdleTimeoutMs?: number
+  /** Provider-owned model-request retry policy; omission uses normal mode with five retries. */
+  retryPolicy?: RetryPolicyConfig
+}
+
+/** One optional model entry advertised by the adapter. */
+export interface ClaudeCodeCatalogModel {
+  /** Wire model id accepted by the subscription. */
+  id: string
+  /** Selector label; defaults to {@link id}. */
+  name?: string
+  /** Optional selector detail for deployments with similar model variants. */
+  description?: string
+  /** Known combined request/response context capacity; omitted when unknown. */
+  contextWindow?: number
+  /** Per-request output cap for this model; omission falls back to the connection default. */
+  maxTokens?: number
+  /** Accepted request modalities; omission is text-only. */
+  inputModalities?: ModelModality[]
+}
+```
+
+Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
+
+Source: [`packages/llm/llm-claude-code/src/index.ts:77`](../packages/llm/llm-claude-code/src/index.ts)
+
+<a id="deepseek-aidsh-llm-cliproxy"></a>
+
+## `@deepseek-ai/dsh-llm-cliproxy`
+
+Requires: `llm`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema and doubling
+ * as the `llm-cliproxy` settings-section shape. Every field is optional in
+ * yml: a missing API key resolves through {@link Config.apiKeyEnv} at each
+ * request (a request without any key fails with `MISSING_CREDENTIAL`, not at
+ * plugin load).
+ */
+export interface Config {
+  /** Credential reference (environment-variable name) resolved per request; defaults to `CLIPROXY_API_KEY`. */
+  apiKeyEnv?: string
+  /** Endpoint base including the `/v1` prefix (default `http://127.0.0.1:8317/v1`). */
+  baseURL?: string
+  /** Default per-request output cap (default 32,000); a model's own cap and explicit request values win. */
+  maxTokens?: number
+  /** Positive context capacity used when the selected model has no exact value (default 200,000). */
+  defaultContextWindow?: number
+  /** Advisory models for the `cliproxy-claude` route; requests remain unrestricted. */
+  claudeModels?: CliProxyCatalogModel[]
+  /** Advisory models for the `cliproxy-openai` route; requests remain unrestricted. */
+  openaiModels?: CliProxyCatalogModel[]
+  /** Maximum provider idle time while one stream read is outstanding (default five minutes). */
+  streamIdleTimeoutMs?: number
+  /** Provider-owned model-request retry policy; omission uses normal mode with five retries. */
+  retryPolicy?: RetryPolicyConfig
+}
+
+/** One optional model entry advertised per provider route. */
+export interface CliProxyCatalogModel {
+  /** Wire model id accepted by the configured endpoint. */
+  id: string
+  /** Selector label; defaults to {@link id}. */
+  name?: string
+  /** Optional selector detail for deployments with similar model variants. */
+  description?: string
+  /** Known combined request/response context capacity; omitted when unknown. */
+  contextWindow?: number
+  /** Per-request output cap for this model; omission falls back to the route default. */
+  maxTokens?: number
+  /** Accepted request modalities; omission is text-only. */
+  inputModalities?: ModelModality[]
+}
+```
+
+Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
+
+Source: [`packages/llm/llm-cliproxy/src/index.ts:82`](../packages/llm/llm-cliproxy/src/index.ts)
+
+<a id="deepseek-aidsh-llm-codex"></a>
+
+## `@deepseek-ai/dsh-llm-codex`
+
+Requires: `llm`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema and doubling
+ * as the `llm-codex` settings-section shape.
+ */
+export interface Config {
+  /** ChatGPT backend API base (default `https://chatgpt.com/backend-api`). */
+  backendBase?: string
+  /** Subscription usage endpoint override. */
+  usageUrl?: string
+  /** OAuth authorize endpoint override. */
+  authorizeUrl?: string
+  /** OAuth token endpoint override. */
+  tokenUrl?: string
+  /** Loopback port of the login control server (default 1456). */
+  controlPort?: number
+  /** Path of this plugin's credential document (default `$DSH_HOME/codex-oauth.json`). */
+  path?: string
+  /** CLIProxyAPI Codex auth file to import once at first boot (e.g. `~/.cli-proxy-api/codex-*.json`). */
+  importFrom?: string
+  /** Harness home override for the default credential path. */
+  dshHome?: string
+  /** Default per-request output cap (default 128,000); a model's own cap and explicit request values win. */
+  maxTokens?: number
+  /** Positive context capacity used when the selected model has no exact value (default 400,000). */
+  defaultContextWindow?: number
+  /** Advisory models; requests remain unrestricted. */
+  models?: CodexCatalogModel[]
+  /** Maximum provider idle time while one stream read is outstanding (default five minutes). */
+  streamIdleTimeoutMs?: number
+  /** Provider-owned model-request retry policy; omission uses normal mode with five retries. */
+  retryPolicy?: RetryPolicyConfig
+}
+
+/** One optional model entry advertised by the adapter. */
+export interface CodexCatalogModel {
+  /** Wire model id accepted by the subscription. */
+  id: string
+  /** Selector label; defaults to {@link id}. */
+  name?: string
+  /** Optional selector detail for deployments with similar model variants. */
+  description?: string
+  /** Known combined request/response context capacity; omitted when unknown. */
+  contextWindow?: number
+  /** Per-request output cap for this model; omission falls back to the connection default. */
+  maxTokens?: number
+  /** Accepted request modalities; omission is text-only. */
+  inputModalities?: ModelModality[]
+  /** Priority serving tier this model requests (e.g. `priority` for tiered variants); omission sends none. */
+  serviceTier?: string
+}
+```
+
+Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
+
+Source: [`packages/llm/llm-codex/src/index.ts:57`](../packages/llm/llm-codex/src/index.ts)
 
 <a id="deepseek-aidsh-llm-deepseek"></a>
 
@@ -2509,6 +2780,39 @@ export interface Config {
 
 Source: [`packages/shell/tool-bash-persistent/src/index.ts:432`](../packages/shell/tool-bash-persistent/src/index.ts)
 
+<a id="deepseek-aidsh-tool-docker"></a>
+
+## `@deepseek-ai/dsh-tool-docker`
+
+Requires: `tools` · `docker` · `systemPrompt`
+
+```ts config-catalog
+/** Complete config after schemastery applies every field default. */
+type ResolvedConfig = Required<Config>
+
+/** Plugin config: which Docker tools to register, their budgets, and output caps. */
+export interface Config {
+  /** Register the read-only `docker_ps` / `docker_images` / `docker_logs` tools. Defaults to true. */
+  inspect?: boolean
+  /**
+   * Register the state-changing `docker_compose_up` / `docker_compose_down`
+   * tools. Defaults to false: starting and stopping containers is a deployment
+   * decision, and a read-only Docker view is useful without it.
+   */
+  compose?: boolean
+  /** Cooperative timeout budget (ms) for one read-only call. */
+  inspectTimeoutMs?: number
+  /** Cooperative timeout budget (ms) for one Compose lifecycle call. */
+  composeTimeoutMs?: number
+  /** Cap on characters one `docker_logs` call emits. */
+  maxLogChars?: number
+  /** Cap on characters one Compose call emits. */
+  maxComposeOutputChars?: number
+}
+```
+
+Source: [`packages/docker/tool-docker/src/index.ts:56`](../packages/docker/tool-docker/src/index.ts)
+
 <a id="deepseek-aidsh-tool-fs"></a>
 
 ## `@deepseek-ai/dsh-tool-fs`
@@ -3203,9 +3507,12 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-deliverables` — requires `systemPrompt` ([`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-directory-picker-browse` ([`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-directory-picker-native` ([`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-docker` ([`packages/client/ui-docker/src/index.ts`](../packages/client/ui-docker/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-editor` ([`packages/client/ui-editor/src/index.ts`](../packages/client/ui-editor/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-goal` ([`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-input-trigger` ([`packages/client/ui-input-trigger/src/index.ts`](../packages/client/ui-input-trigger/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-jobs` ([`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-knowledge` ([`packages/client/ui-knowledge/src/index.ts`](../packages/client/ui-knowledge/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-layout` ([`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-message-feedback` ([`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-model-selection` ([`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts))

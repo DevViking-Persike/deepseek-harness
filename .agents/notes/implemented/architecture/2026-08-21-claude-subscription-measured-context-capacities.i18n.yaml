@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-21-claude-subscription-measured-context-capacities.md
+2026-08-21-claude-subscription-measured-context-capacities.md: 0556879007de606bce48c58cf9106baefcb6e7ac
+2026-08-21-claude-subscription-measured-context-capacities.zh.md: 0de860f67e65c4b72cc72088c7c4d6254fb236ec
