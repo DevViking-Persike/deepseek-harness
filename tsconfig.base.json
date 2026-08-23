@@ -225,6 +225,8 @@
       "@deepseek-ai/dsh-client-ui-trajectory": ["./packages/client/ui-trajectory/src"],
       "@deepseek-ai/dsh-client-ui-docker": ["./packages/client/ui-docker/src"],
       "@deepseek-ai/dsh-client-ui-editor": ["./packages/client/ui-editor/src"],
+      "@deepseek-ai/dsh-client-ui-knowledge": ["./packages/client/ui-knowledge/src"],
+      "@deepseek-ai/dsh-client-ui-knowledge/client": ["./packages/client/ui-knowledge/src/client"],
       "@deepseek-ai/dsh-client-ui-editor/client": ["./packages/client/ui-editor/src/client"],
       "@deepseek-ai/dsh-client-ui-workspace": ["./packages/client/ui-workspace/src"],
       "@deepseek-ai/dsh-client-ui-theme": ["./packages/client/ui-theme/src"],

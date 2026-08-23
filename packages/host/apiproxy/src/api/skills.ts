@@ -18,6 +18,16 @@ export interface SkillEntry {
   readonly whenToUse?: string
   /** False marks a user-only skill (`disable-model-invocation`): invocable here, absent from the model catalog. */
   readonly modelInvocable: boolean
+  /**
+   * Which root supplied this skill: `project-dsh` and `project-agents` come
+   * from the session's own project, `user-dsh` and `user-agents` from the
+   * operator's home, and the rest from the composition. A management surface
+   * must distinguish them — editing a global skill and editing one committed
+   * to the project have different consequences, and the name alone hides that.
+   */
+  readonly source: string
+  /** The provider that supplied the row, for a composition mounting several. */
+  readonly provider: string
 }
 
 /**

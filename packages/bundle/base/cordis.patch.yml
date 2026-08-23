@@ -163,6 +163,19 @@
     - id: subprocess
       name: '@deepseek-ai/dsh-subprocess-local'
 
+    # External MCP servers. Each instance bridges one server and publishes its
+    # tools as `mcp__<serverName>__<rawName>`, so a second server is another
+    # row rather than another plugin. Disabled by default: a row spawns the
+    # command it names, and which servers a deployment trusts is its own
+    # decision.
+    - id: mcp-dbx
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        transport: stdio
+        serverName: dbx
+        command: npx
+        args: ['-y', '@dbx-app/mcp-server']
+
     # Language intelligence. The seam answers four semantic queries
     # (definition, references, implementation, hover); a server is spawned
     # lazily on first query and only for the extensions it declares, so an

@@ -15,6 +15,8 @@ export const skillEntrySchema = z.object({
   description: z.string(),
   whenToUse: z.string().optional(),
   modelInvocable: z.boolean(),
+  source: z.string(),
+  provider: z.string(),
 }) satisfies z.ZodType<Wire<SkillEntry>>
 
 /** skill.list request payload. */

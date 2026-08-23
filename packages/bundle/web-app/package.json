@@ -60,6 +60,7 @@
     "@deepseek-ai/dsh-client-ui-conversation": "workspace:^",
     "@deepseek-ai/dsh-client-ui-docker": "workspace:^",
     "@deepseek-ai/dsh-client-ui-editor": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-knowledge": "workspace:^",
     "@deepseek-ai/dsh-host-monaco-assets": "workspace:^",
     "@deepseek-ai/dsh-client-ui-cordis": "workspace:^",
     "@deepseek-ai/dsh-client-ui-deliverables": "workspace:^",

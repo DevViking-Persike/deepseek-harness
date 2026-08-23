@@ -311,6 +311,11 @@
     - id: ui-editor
       name: '@deepseek-ai/dsh-client-ui-editor'
 
+    # What a session can draw on — skills, decision records, documentation —
+    # and which root supplied each, in Settings rather than a conversation tab.
+    - id: ui-knowledge
+      name: '@deepseek-ai/dsh-client-ui-knowledge'
+
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #
 # Every row below composes what ONE agent contributes to the host registries:
