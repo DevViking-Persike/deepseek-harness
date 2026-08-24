@@ -27,6 +27,7 @@
   /* The wheel must act on this box rather than passing through to the page. */
   touch-action: pan-y;
 
+
   /* No visible bar: the panel is narrow, and 8px of permanent chrome beside a
      file list costs more than it tells. The two declarations are mutually
      exclusive by engine — the theme's scrollbar.css documents why — so both
@@ -113,6 +114,12 @@
   color: var(--dsw-alias-label-secondary);
   background: var(--dsw-alias-bg-layer-2);
   font: var(--dsw-font-xxs-12);
+
+  /* This band is an elevated surface and the panel around it scrolls, so the
+     thumb rebinds to the l2 pair; the l1 thumb differs only in the dark
+     palette, where an unrebound thumb reads as the wrong elevation. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 .placeholder {

@@ -3,6 +3,13 @@
   flex-direction: column;
   gap: 10px;
   min-height: 0;
+
+  /* The section renders inside the settings panel — an elevated surface — and
+     its lists scroll, so the thumb rebinds to the l2 pair; the l1 thumb differs
+     only in the dark palette, where an unrebound thumb reads as the wrong
+     elevation. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 .tabs {
