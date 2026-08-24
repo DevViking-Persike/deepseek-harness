@@ -1072,6 +1072,15 @@ importers:
       '@deepseek-ai/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
+      '@deepseek-ai/dsh-llm-claude-code':
+        specifier: workspace:^
+        version: link:../../llm/llm-claude-code
+      '@deepseek-ai/dsh-llm-cliproxy':
+        specifier: workspace:^
+        version: link:../../llm/llm-cliproxy
+      '@deepseek-ai/dsh-llm-codex':
+        specifier: workspace:^
+        version: link:../../llm/llm-codex
       '@deepseek-ai/dsh-llm-deepseek':
         specifier: workspace:^
         version: link:../../llm/llm-deepseek
@@ -4884,6 +4893,41 @@ importers:
         specifier: workspace:^
         version: link:../../core/tools
 
+  packages/git/git:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+
+  packages/git/git-local:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-git':
+        specifier: workspace:^
+        version: link:../git
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-subprocess':
+        specifier: workspace:^
+        version: link:../../subprocess/subprocess
+
   packages/goal/command-goal:
     devDependencies:
       '@deepseek-ai/cordis':
@@ -5209,6 +5253,9 @@ importers:
       '@deepseek-ai/dsh-docker':
         specifier: workspace:^
         version: link:../../docker/docker
+      '@deepseek-ai/dsh-git':
+        specifier: workspace:^
+        version: link:../../git/git
       '@deepseek-ai/dsh-goal':
         specifier: workspace:^
         version: link:../../goal/goal
