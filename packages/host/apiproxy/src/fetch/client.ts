@@ -45,6 +45,11 @@ import {
   editorLanguageServersValueSchema, editorListDirValueSchema, editorReadFileValueSchema, editorWriteFileValueSchema,
 } from '../api/editor.schema.ts'
 import {
+  gitCommitValueSchema, gitDiffValueSchema, gitDiscardValueSchema,
+  gitListRepositoriesValueSchema, gitLogValueSchema, gitRecoverValueSchema,
+  gitStatusValueSchema,
+} from '../api/git.schema.ts'
+import {
   dockerBrowseComposeValueSchema, dockerComposeDownValueSchema, dockerComposeUpValueSchema,
   dockerEngineStatusValueSchema, dockerInstallEngineValueSchema, dockerStartEngineValueSchema,
   dockerControlValueSchema,
@@ -132,6 +137,17 @@ export interface IApiClient {
   }
   skills: {
     list(payload: RequestPayload<'skill.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'skill.list'>>>
+  }
+  git: {
+    listRepositories(payload: RequestPayload<'git.listRepositories'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.listRepositories'>>>
+    status(payload: RequestPayload<'git.status'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.status'>>>
+    diff(payload: RequestPayload<'git.diff'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.diff'>>>
+    log(payload: RequestPayload<'git.log'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.log'>>>
+    stage(payload: RequestPayload<'git.stage'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.stage'>>>
+    unstage(payload: RequestPayload<'git.unstage'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.unstage'>>>
+    discard(payload: RequestPayload<'git.discard'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.discard'>>>
+    commit(payload: RequestPayload<'git.commit'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.commit'>>>
+    recover(payload: RequestPayload<'git.recover'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.recover'>>>
   }
   editor: {
     languageServers(payload: RequestPayload<'editor.languageServers'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'editor.languageServers'>>>
@@ -230,6 +246,15 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'editor.listDir': editorListDirValueSchema,
   'editor.readFile': editorReadFileValueSchema,
   'editor.writeFile': editorWriteFileValueSchema,
+  'git.listRepositories': gitListRepositoriesValueSchema,
+  'git.status': gitStatusValueSchema,
+  'git.diff': gitDiffValueSchema,
+  'git.log': gitLogValueSchema,
+  'git.stage': gitStatusValueSchema,
+  'git.unstage': gitStatusValueSchema,
+  'git.discard': gitDiscardValueSchema,
+  'git.recover': gitRecoverValueSchema,
+  'git.commit': gitCommitValueSchema,
   'docker.engineStatus': dockerEngineStatusValueSchema,
   'docker.startEngine': dockerStartEngineValueSchema,
   'docker.installEngine': dockerInstallEngineValueSchema,
@@ -496,6 +521,18 @@ export abstract class AbstractApiClient implements IApiClient {
 
   readonly skills: IApiClient['skills'] = {
     list: (payload, signal) => this.callUnary('skill.list', payload, signal),
+  }
+
+  readonly git: IApiClient['git'] = {
+    listRepositories: (payload, signal) => this.callUnary('git.listRepositories', payload, signal),
+    status: (payload, signal) => this.callUnary('git.status', payload, signal),
+    diff: (payload, signal) => this.callUnary('git.diff', payload, signal),
+    log: (payload, signal) => this.callUnary('git.log', payload, signal),
+    stage: (payload, signal) => this.callUnary('git.stage', payload, signal),
+    unstage: (payload, signal) => this.callUnary('git.unstage', payload, signal),
+    discard: (payload, signal) => this.callUnary('git.discard', payload, signal),
+    commit: (payload, signal) => this.callUnary('git.commit', payload, signal),
+    recover: (payload, signal) => this.callUnary('git.recover', payload, signal),
   }
 
   readonly editor: IApiClient['editor'] = {

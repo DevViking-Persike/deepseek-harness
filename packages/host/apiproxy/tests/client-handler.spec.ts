@@ -96,6 +96,25 @@ function scriptedApi(overrides: {
       readFile: r => ok(r, { path: r.payload.path, content: '', version: 'v1' }),
       writeFile: r => ok(r, { path: r.payload.path, version: 'v2' }),
     },
+    git: {
+      listRepositories: r => ok(r, { repositories: [], truncated: false }),
+      status: r => ok(r, { root: r.payload.root, ahead: 0, behind: 0, changes: [], truncated: false }),
+      diff: r => ok(r, { path: r.payload.path, oldText: '', newText: '', binary: false }),
+      log: r => ok(r, { commits: [] }),
+      stage: r => ok(r, { root: r.payload.root, ahead: 0, behind: 0, changes: [], truncated: false }),
+      unstage: r => ok(r, { root: r.payload.root, ahead: 0, behind: 0, changes: [], truncated: false }),
+      discard: r => ok(r, {
+        status: { root: r.payload.root, ahead: 0, behind: 0, changes: [], truncated: false },
+      }),
+      recover: r => ok(r, { content: '' }),
+      commit: r => ok(r, {
+        commit: {
+          id: 'c0ffee', subject: r.payload.message, authorName: 'T',
+          authorEmail: 't@example.com', authoredAt: '0', parents: [],
+        },
+        status: { root: r.payload.root, ahead: 0, behind: 0, changes: [], truncated: false },
+      }),
+    },
     docker: {
       engineStatus: r => ok(r, { status: { running: true, startable: false, installable: false } }),
       startEngine: r => ok(r, { status: { running: true, startable: false, installable: false }, output: '' }),

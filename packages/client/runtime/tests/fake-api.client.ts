@@ -249,6 +249,18 @@ export class FakeApiClient implements IApiClient {
     list: (payload: unknown) => this.record('skill.list', payload, this.onSkillList(payload)),
   }
 
+  readonly git: IApiClient['git'] = {
+    listRepositories: payload => this.record('git.listRepositories', payload, Promise.resolve(ok({ repositories: [], truncated: false }))),
+    status: payload => this.record('git.status', payload, Promise.resolve(ok({ root: '/w', branch: '', staged: [], unstaged: [], untracked: [] }))),
+    diff: payload => this.record('git.diff', payload, Promise.resolve(ok({ path: '', before: '', after: '' }))),
+    log: payload => this.record('git.log', payload, Promise.resolve(ok({ entries: [] }))),
+    stage: payload => this.record('git.stage', payload, Promise.resolve(ok({}))),
+    unstage: payload => this.record('git.unstage', payload, Promise.resolve(ok({}))),
+    discard: payload => this.record('git.discard', payload, Promise.resolve(ok({}))),
+    commit: payload => this.record('git.commit', payload, Promise.resolve(ok({}))),
+    recover: payload => this.record('git.recover', payload, Promise.resolve(ok({}))),
+  }
+
   readonly editor: IApiClient['editor'] = {
     languageServers: payload => this.record('editor.languageServers', payload, Promise.resolve(ok({ servers: [] }))),
     listDir: payload => this.record('editor.listDir', payload, Promise.resolve(ok({ path: '/w', root: '/w', entries: [] }))),
