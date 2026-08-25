@@ -30,6 +30,11 @@ export function ok<T>(value: T): RpcResponse<T> {
   return { rpcId: RpcId(`fake-${nextRpc++}`), result: { ok: true, value } }
 }
 
+/** A clean working tree, the git.* answer every row of this double returns. */
+function emptyGitStatus(root: string) {
+  return { root, ahead: 0, behind: 0, changes: [], truncated: false }
+}
+
 
 type StreamItem<F> = { kind: 'frame'; envelope: RpcRequest<F> } | { kind: 'end' } | { kind: 'fail'; error: unknown }
 
@@ -201,6 +206,27 @@ export class FakeApiClient implements IApiClient {
     listDir: payload => this.record('editor.listDir', payload, Promise.resolve(ok({ path: '/w', root: '/w', entries: [] }))),
     readFile: payload => this.record('editor.readFile', payload, Promise.resolve(ok({ path: payload.path, content: '', version: 'v1' }))),
     writeFile: payload => this.record('editor.writeFile', payload, Promise.resolve(ok({ path: payload.path, version: 'v2' }))),
+  }
+
+  readonly git: IApiClient['git'] = {
+    listRepositories: payload => this.record('git.listRepositories', payload, Promise.resolve(ok({ repositories: [], truncated: false }))),
+    status: payload => this.record('git.status', payload, Promise.resolve(ok(emptyGitStatus(payload.root)))),
+    worktrees: payload => this.record('git.worktrees', payload, Promise.resolve(ok({ worktrees: [] }))),
+    compareBases: payload => this.record('git.compareBases', payload, Promise.resolve(ok({ comparisons: [] }))),
+    graph: payload => this.record('git.graph', payload, Promise.resolve(ok({ commits: [], branches: [], truncated: false }))),
+    diff: payload => this.record('git.diff', payload, Promise.resolve(ok({ path: payload.path, oldText: '', newText: '', binary: false }))),
+    log: payload => this.record('git.log', payload, Promise.resolve(ok({ commits: [] }))),
+    stage: payload => this.record('git.stage', payload, Promise.resolve(ok(emptyGitStatus(payload.root)))),
+    unstage: payload => this.record('git.unstage', payload, Promise.resolve(ok(emptyGitStatus(payload.root)))),
+    discard: payload => this.record('git.discard', payload, Promise.resolve(ok({ status: emptyGitStatus(payload.root) }))),
+    recover: payload => this.record('git.recover', payload, Promise.resolve(ok({ content: '' }))),
+    commit: payload => this.record('git.commit', payload, Promise.resolve(ok({
+      commit: {
+        id: 'c0ffee', subject: payload.message, authorName: 'Test',
+        authorEmail: 'test@example.com', authoredAt: '2026-01-01T00:00:00Z', parents: [],
+      },
+      status: emptyGitStatus(payload.root),
+    }))),
   }
 
   readonly docker: IApiClient['docker'] = {

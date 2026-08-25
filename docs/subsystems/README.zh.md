@@ -41,6 +41,7 @@
 | [agent-team.md](agent-team.md) | Agent Teams：隐式 Lead 身份、具名 continuable teammate、持久 peer mailbox 与共享任务 DAG |
 | [web.md](web.md) | Web 访问 seam：`WebSearchRequest`/`Result`、`WebFetchRequest`/`Result`、`WebFetchBody`、提供方可用性、`WebError` |
 | [docker.md](docker.md) | Docker 访问 seam：`DockerContainer`/`State`、`DockerImage`、`DockerLogsRequest`/`Result`、`DockerComposeRequest`/`Result`、逐次调用的提供方可用性、`DockerError` |
+| [git.md](git.md) | Git 访问 seam：携带索引两侧的 `GitFileChange`、`GitWorktree`、`GitBaseComparison`、`GitGraph`、`GitDiscardResult`、逐次调用的提供方可用性、`GitError` |
 | [spill.md](spill.md) | spill 存储 seam：`SaveTextSpill`、`SpillOwner`/`SpillSource`、`SpillRef`、品牌类型 `SpillLocator` |
 | [workflow.md](workflow.md) | 工作流 seam：`WorkflowStartRequest`、`WorkflowMeta`、`WorkflowRun`/`Result`、`workflow/*` 事件载荷、`WorkflowError` 致命性 |
 | [jobs.md](jobs.md) | 后台任务运行时：品牌化 `JobId`、producer 约定、消费方视图和 `ctx.jobs` 服务行为 |

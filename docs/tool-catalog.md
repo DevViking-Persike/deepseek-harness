@@ -42,6 +42,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflowEngine`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
 | `@deepseek-ai/dsh-tool-docker` | `docker_compose_down`, `docker_compose_up`, `docker_images`, `docker_logs`, `docker_ps` | `ctx.tools`, `ctx.docker`, `ctx.systemPrompt` | `tool/call`, `tool/result`, `container and Compose project state for the lifecycle tools` | - | The read-only tools ship enabled while the Compose lifecycle pair is opt-in (`compose`, default false), so a shipped tree normally exposes only docker_ps, docker_images, and docker_logs. The docker_logs description states the configured maxLogChars. Registration follows enablement, not backend availability: without a usable provider each call fails with a structured DockerError instead of removing the schema. |
+| `@deepseek-ai/dsh-tool-git` | `git_commit`, `git_diff`, `git_discard`, `git_log`, `git_stage`, `git_status`, `git_unstage` | `ctx.tools`, `ctx.git`, `ctx.systemPrompt` | `tool/call`, `tool/result`, `index, working-tree, and commit state for the mutating tools` | - | The read-only tools ship enabled while the mutating group is opt-in (`mutate`, default false), so a shipped tree normally exposes only git_status, git_diff, and git_log. git_discard preserves the content it replaces and reports a recoveryId, so a discard stays undoable. Registration follows enablement, not backend availability: without a usable provider each call fails with a structured GitError instead of removing the schema. |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 
@@ -2347,3 +2348,203 @@ List Docker containers. Running containers only by default; set all to include s
 Source: [`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
 
 The read-only tools ship enabled while the Compose lifecycle pair is opt-in (`compose`, default false), so a shipped tree normally exposes only docker_ps, docker_images, and docker_logs. The docker_logs description states the configured maxLogChars. Registration follows enablement, not backend availability: without a usable provider each call fails with a structured DockerError instead of removing the schema.
+
+<a id="deepseek-aidsh-tool-git"></a>
+
+## `@deepseek-ai/dsh-tool-git`
+
+### `git_commit`
+
+Record the staged changes as a commit.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "message": {
+      "type": "string",
+      "description": "Commit message; its first line is the subject."
+    }
+  },
+  "required": [
+    "repository",
+    "message"
+  ]
+}
+```
+
+Source: [`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_diff`
+
+Read one file's content before and after its change. Returns at most 40000 characters per side.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "path": {
+      "type": "string",
+      "description": "Repository-relative path of the file to compare."
+    },
+    "staged": {
+      "type": "boolean",
+      "description": "Compare the staged change against the last commit instead of the working tree against the index."
+    }
+  },
+  "required": [
+    "repository",
+    "path"
+  ]
+}
+```
+
+Source: [`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_discard`
+
+Restore a file, discarding its uncommitted change. Reports a recoveryId that can restore the discarded content.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "path": {
+      "type": "string",
+      "description": "Repository-relative path to restore."
+    },
+    "staged": {
+      "type": "boolean",
+      "description": "Discard the staged change instead of the working-tree edit."
+    }
+  },
+  "required": [
+    "repository",
+    "path"
+  ]
+}
+```
+
+Source: [`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_log`
+
+Read a Git repository's recent commits, newest first.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "limit": {
+      "type": "number",
+      "description": "Number of commits to read."
+    },
+    "path": {
+      "type": "string",
+      "description": "Only commits touching this repository-relative path."
+    }
+  },
+  "required": [
+    "repository"
+  ]
+}
+```
+
+Source: [`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_stage`
+
+Add files to the Git index, so the next commit will contain them.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "paths": {
+      "type": "array",
+      "description": "Repository-relative paths to stage.",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "repository",
+    "paths"
+  ]
+}
+```
+
+Source: [`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_status`
+
+Show which files changed in a Git repository, with each change's staged and unstaged state.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    }
+  },
+  "required": [
+    "repository"
+  ]
+}
+```
+
+Source: [`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_unstage`
+
+Remove files from the Git index without changing their content on disk.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "paths": {
+      "type": "array",
+      "description": "Repository-relative paths to unstage.",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "repository",
+    "paths"
+  ]
+}
+```
+
+Source: [`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+The read-only tools ship enabled while the mutating group is opt-in (`mutate`, default false), so a shipped tree normally exposes only git_status, git_diff, and git_log. git_discard preserves the content it replaces and reports a recoveryId, so a discard stays undoable. Registration follows enablement, not backend availability: without a usable provider each call fails with a structured GitError instead of removing the schema.

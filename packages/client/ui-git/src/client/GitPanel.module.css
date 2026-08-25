@@ -1,0 +1,350 @@
+/* The panel fills the editor's side column, which owns the scrolling. */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 6px;
+}
+
+.picker {
+  flex: none;
+  height: 24px;
+  min-width: 0;
+  padding: 0 6px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  font: var(--dsw-font-xxs-12);
+}
+
+.branch {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.branchName {
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.divergence,
+.note {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.note {
+  margin: 0;
+  padding: 0 4px;
+}
+
+/* The push-safety banner. Neutral by default because "the base moved" is
+   information, not an error; it turns red only when merging would conflict,
+   which is the case that actually blocks. */
+.warning {
+  flex: none;
+  padding: 6px;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-2);
+  font: var(--dsw-font-xxs-12);
+}
+
+.warningConflict {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.views {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.viewTab {
+  flex: 1 1 auto;
+  height: 20px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-tertiary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+}
+
+.viewTab:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.viewTab:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.viewTabActive {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+/* The checkout list, drawn only when the repository has linked worktrees. */
+.worktrees {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 1px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.worktreesHead {
+  padding: 0 4px 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.worktree {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 4px;
+  border: none;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+  text-align: left;
+}
+
+.worktree:hover:enabled {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* A bare or prunable checkout has nothing to show, so it is listed but inert. */
+.worktree:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.worktree:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.worktreeActive {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.worktreeName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.worktreeMeta {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.badge {
+  padding: 0 4px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 3px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.changes {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The row is one flex line; its expanded diff wraps onto a full-width second
+   line beneath, which is why the row wraps rather than growing sideways. */
+.change {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  border-radius: 4px;
+  padding-right: 2px;
+}
+
+/* The expanded row's diff. It stays inside the row's list item so the two
+   remain associated while the list scrolls, and scrolls horizontally on its
+   own because source lines must keep their indentation rather than wrap. */
+.diff {
+  flex: 1 0 100%;
+  min-width: 0;
+  padding: 4px 0 6px;
+  overflow-x: auto;
+
+  /* The selected row sits on an elevated surface, so the thumb rebinds to the
+     l2 pair; an unrebound thumb reads as the wrong elevation in the dark
+     palette. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.change:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* The file the editor currently holds, so the list and the buffer agree. */
+.changeOpen {
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.path {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  height: 22px;
+  padding: 0 4px;
+  border: none;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+  text-align: left;
+}
+
+/* The staged marker column keeps its width whether or not a mark is drawn, so
+   file names stay aligned down the list. */
+.mark {
+  flex: none;
+  width: 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.markStaged {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+/* The path is elided from its START: the tail (the file name) identifies it. */
+.name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
+
+.counts {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* Row actions appear on hover or keyboard focus: three permanent buttons per
+   row would crowd a 240px column and bury the file names. */
+.actions {
+  display: none;
+  flex: none;
+  gap: 2px;
+}
+
+.change:hover .actions,
+.change:focus-within .actions {
+  display: flex;
+}
+
+.action {
+  flex: none;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+  white-space: nowrap;
+}
+
+.action:hover:enabled {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.action:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.action:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+/* A discard destroyed uncommitted work; this band says where it went, so it
+   holds the full width rather than sitting among the rows. */
+.recovery {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-2);
+  font: var(--dsw-font-xxs-12);
+}
+
+.placeholder {
+  margin: 0;
+  padding: 12px 6px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.commit {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+.message {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  resize: vertical;
+  font: var(--dsw-font-xxs-12);
+  font-family: inherit;
+}
+
+.message:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: -1px;
+}
+
+.commitRow {
+  display: flex;
+  gap: 4px;
+}

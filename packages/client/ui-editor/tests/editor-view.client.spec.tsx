@@ -83,6 +83,10 @@ function mount(overrides: Partial<EditorViewProps> = {}) {
     readFile: overrides.readFile
       ?? (() => Promise.resolve({ path: '/w/main.ts', content: 'export const a = 1\n', version: 'v1' })),
     languageServers: () => Promise.resolve([]),
+    // No panel is registered in these specs: the ring is empty, so the tab
+    // shows its own file tree and draws no switcher.
+    panels: { list: () => [], subscribe: () => () => {}, version: () => 0 },
+    renderSlot: () => null,
     writeFile: overrides.writeFile ?? (() => Promise.resolve('v2')),
     t: makeTranslate(zh),
   } as unknown as EditorViewProps

@@ -70,6 +70,10 @@ function mount(entries: number) {
     listDir: () => Promise.resolve(largeLevel(entries)),
     readFile: () => Promise.resolve({ path: '/w/a.ts', content: '', version: 'v1' }),
     languageServers: () => Promise.resolve([]),
+    // No panel is registered in these specs: the ring is empty, so the tab
+    // shows its own file tree and draws no switcher.
+    panels: { list: () => [], subscribe: () => () => {}, version: () => 0 },
+    renderSlot: () => null,
     writeFile: () => Promise.resolve('v2'),
     t: makeTranslate(zh),
   } as unknown as EditorViewProps
@@ -109,16 +113,20 @@ describe('editor layout', () => {
     expect(screen.getByText('file-000.ts')).toBeTruthy()
   })
 
-  it('renders the tree and the buffer pane as siblings, each owning its scroll', async () => {
+  it('renders the side column and the buffer pane as siblings, each owning its scroll', async () => {
     const { container } = mount(5)
     await screen.findByText('file-000.ts')
 
     const root = container.querySelector(`.${editorCss.root}`)
+    const side = container.querySelector(`.${editorCss.side}`)
     const tree = container.querySelector(`.${editorCss.tree}`)
     const pane = container.querySelector(`.${editorCss.pane}`)
 
-    expect(tree?.parentElement).toBe(root)
+    // The left column holds the panel switcher above whichever panel it
+    // selects, so the tree sits inside it rather than beside the pane.
+    expect(side?.parentElement).toBe(root)
     expect(pane?.parentElement).toBe(root)
+    expect(tree?.parentElement).toBe(side)
   })
 
   it('keeps the Monaco host mounted while no file is open, so it can measure itself', async () => {

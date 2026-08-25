@@ -21,6 +21,9 @@
       "path": "../../docker/docker"
     },
     {
+      "path": "../../git/git"
+    },
+    {
       "path": "../../../vendor/cordis"
     },
     {

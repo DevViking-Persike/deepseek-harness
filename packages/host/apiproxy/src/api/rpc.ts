@@ -94,6 +94,31 @@ export interface RpcErrorDetailsMap {
    */
   'editor-stale': {}
   /**
+   * No Git backend is usable: the composition mounts no Git seam, or the seam
+   * has no usable provider, several usable providers with none pinned, or a
+   * configured provider that is missing or unusable. Those are one empty state
+   * for a client, so they share one code.
+   */
+  'git-unavailable': {}
+  /**
+   * The repository lies outside every registered workspace, or the path
+   * resolves outside that repository. Both are the same refusal: the wire
+   * value addressed something this domain does not serve.
+   */
+  'git-denied': {}
+  /** The repository, path, or object does not exist. */
+  'git-not-found': {}
+  /** The working tree holds unresolved merge conflicts, so the operation cannot proceed. */
+  'git-conflicted': {}
+  /** A commit was requested with an empty index; the client shows a disabled action, not an error. */
+  'git-nothing-staged': {}
+  /**
+   * A reachable repository refused the operation: a failing hook, a locked
+   * index, a rejected write. Distinct from `git-unavailable` because the
+   * repository was reached, so the message carries Git's own text.
+   */
+  'git-failed': {}
+  /**
    * A reachable engine refused the Compose project: a port already bound, an
    * unparseable file, a failing health check. Distinct from
    * `docker-unavailable` because the operator's file was reached, so the

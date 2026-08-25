@@ -39,6 +39,11 @@ export function deferred<T>(): Deferred<T> {
   return { promise, resolve, reject }
 }
 
+/** A clean working tree, the git.* answer every row of this double returns. */
+function cleanTree(root: string) {
+  return { root, ahead: 0, behind: 0, changes: [], truncated: false }
+}
+
 let nextRpc = 0
 
 export function ok<T>(value: T): RpcResponse<T> {
@@ -251,14 +256,23 @@ export class FakeApiClient implements IApiClient {
 
   readonly git: IApiClient['git'] = {
     listRepositories: payload => this.record('git.listRepositories', payload, Promise.resolve(ok({ repositories: [], truncated: false }))),
-    status: payload => this.record('git.status', payload, Promise.resolve(ok({ root: '/w', branch: '', staged: [], unstaged: [], untracked: [] }))),
-    diff: payload => this.record('git.diff', payload, Promise.resolve(ok({ path: '', before: '', after: '' }))),
-    log: payload => this.record('git.log', payload, Promise.resolve(ok({ entries: [] }))),
-    stage: payload => this.record('git.stage', payload, Promise.resolve(ok({}))),
-    unstage: payload => this.record('git.unstage', payload, Promise.resolve(ok({}))),
-    discard: payload => this.record('git.discard', payload, Promise.resolve(ok({}))),
-    commit: payload => this.record('git.commit', payload, Promise.resolve(ok({}))),
-    recover: payload => this.record('git.recover', payload, Promise.resolve(ok({}))),
+    status: payload => this.record('git.status', payload, Promise.resolve(ok(cleanTree(payload.root)))),
+    worktrees: payload => this.record('git.worktrees', payload, Promise.resolve(ok({ worktrees: [] }))),
+    compareBases: payload => this.record('git.compareBases', payload, Promise.resolve(ok({ comparisons: [] }))),
+    graph: payload => this.record('git.graph', payload, Promise.resolve(ok({ commits: [], branches: [], truncated: false }))),
+    diff: payload => this.record('git.diff', payload, Promise.resolve(ok({ path: payload.path, oldText: '', newText: '', binary: false }))),
+    log: payload => this.record('git.log', payload, Promise.resolve(ok({ commits: [] }))),
+    stage: payload => this.record('git.stage', payload, Promise.resolve(ok(cleanTree(payload.root)))),
+    unstage: payload => this.record('git.unstage', payload, Promise.resolve(ok(cleanTree(payload.root)))),
+    discard: payload => this.record('git.discard', payload, Promise.resolve(ok({ status: cleanTree(payload.root) }))),
+    commit: payload => this.record('git.commit', payload, Promise.resolve(ok({
+      commit: {
+        id: 'c0ffee', subject: payload.message, authorName: 'Fake',
+        authorEmail: 'fake@example.com', authoredAt: '2026-01-01T00:00:00.000Z', parents: [],
+      },
+      status: cleanTree(payload.root),
+    }))),
+    recover: payload => this.record('git.recover', payload, Promise.resolve(ok({ content: '' }))),
   }
 
   readonly editor: IApiClient['editor'] = {

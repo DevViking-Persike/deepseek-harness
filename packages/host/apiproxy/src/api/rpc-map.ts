@@ -11,6 +11,7 @@ import type { AgentPresetsApi } from './agent-presets.ts'
 import type { SkillsApi } from './skills.ts'
 import type { DockerApi } from './docker.ts'
 import type { EditorApi } from './editor.ts'
+import type { GitApi } from './git.ts'
 import type { GoalsApi } from './goals.ts'
 import type { SettingsApi } from './settings.ts'
 import type { CredentialsApi } from './credentials.ts'
@@ -57,6 +58,18 @@ export interface RpcMethodMap {
   'editor.listDir': EditorApi['listDir']
   'editor.readFile': EditorApi['readFile']
   'editor.writeFile': EditorApi['writeFile']
+  'git.listRepositories': GitApi['listRepositories']
+  'git.status': GitApi['status']
+  'git.worktrees': GitApi['worktrees']
+  'git.compareBases': GitApi['compareBases']
+  'git.graph': GitApi['graph']
+  'git.diff': GitApi['diff']
+  'git.log': GitApi['log']
+  'git.stage': GitApi['stage']
+  'git.unstage': GitApi['unstage']
+  'git.discard': GitApi['discard']
+  'git.recover': GitApi['recover']
+  'git.commit': GitApi['commit']
   'docker.engineStatus': DockerApi['engineStatus']
   'docker.startEngine': DockerApi['startEngine']
   'docker.installEngine': DockerApi['installEngine']

@@ -1685,6 +1685,13 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
     details: {},
   }
 
+  /** The git.* refusal of a fixture that mounts no Git seam. */
+  const gitUnavailable = {
+    code: 'git-unavailable' as const,
+    message: 'fixture composition mounts no Git seam',
+    details: {},
+  }
+
   const summaryOf = (id: SessionId): SessionSummary | undefined => sessions.find(s => s.sessionId === id)
   /** Shared session guard for sessionId-addressed catalog routes: the error
    *  response when the session is unknown, undefined when it exists. */
@@ -2904,6 +2911,22 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       readFile: request => err(request, editorUnavailable),
       writeFile: request => err(request, editorUnavailable),
     },
+    git: {
+      // The fixture composition mounts no Git seam, so every row answers the
+      // same empty state a real host without a provider answers.
+      listRepositories: request => ok(request, { repositories: [], truncated: false }),
+      status: request => err(request, gitUnavailable),
+      worktrees: request => err(request, gitUnavailable),
+      compareBases: request => err(request, gitUnavailable),
+      graph: request => err(request, gitUnavailable),
+      diff: request => err(request, gitUnavailable),
+      log: request => err(request, gitUnavailable),
+      stage: request => err(request, gitUnavailable),
+      unstage: request => err(request, gitUnavailable),
+      discard: request => err(request, gitUnavailable),
+      recover: request => err(request, gitUnavailable),
+      commit: request => err(request, gitUnavailable),
+    },
     docker: {
       // The fixture composition mounts no Docker seam, so every row answers
       // the same empty state a real host without a provider answers.
@@ -3253,6 +3276,18 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'editor.listDir': return this.api.editor.listDir(request, signal)
       case 'editor.readFile': return this.api.editor.readFile(request, signal)
       case 'editor.writeFile': return this.api.editor.writeFile(request, signal)
+      case 'git.listRepositories': return this.api.git.listRepositories(request, signal)
+      case 'git.status': return this.api.git.status(request, signal)
+      case 'git.worktrees': return this.api.git.worktrees(request, signal)
+      case 'git.compareBases': return this.api.git.compareBases(request, signal)
+      case 'git.graph': return this.api.git.graph(request, signal)
+      case 'git.diff': return this.api.git.diff(request, signal)
+      case 'git.log': return this.api.git.log(request, signal)
+      case 'git.stage': return this.api.git.stage(request, signal)
+      case 'git.unstage': return this.api.git.unstage(request, signal)
+      case 'git.discard': return this.api.git.discard(request, signal)
+      case 'git.recover': return this.api.git.recover(request, signal)
+      case 'git.commit': return this.api.git.commit(request, signal)
       case 'docker.engineStatus': return this.api.docker.engineStatus(request, signal)
       case 'docker.startEngine': return this.api.docker.startEngine(request, signal)
       case 'docker.installEngine': return this.api.docker.installEngine(request, signal)

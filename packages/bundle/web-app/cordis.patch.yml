@@ -311,6 +311,13 @@
     - id: ui-editor
       name: '@deepseek-ai/dsh-client-ui-editor'
 
+    # Version control as a panel INSIDE the editor tab, not a tab of its own:
+    # reviewing a change and editing it share one file tree, one buffer, and
+    # one session. A composition without a Git seam still loads the panel; it
+    # reports an absent seam as an empty state rather than failing.
+    - id: ui-git
+      name: '@deepseek-ai/dsh-client-ui-git'
+
     # What a session can draw on — skills, decision records, documentation —
     # and which root supplied each, in Settings rather than a conversation tab.
     - id: ui-knowledge

@@ -12,11 +12,76 @@
   overflow: hidden;
 }
 
-.tree {
+/* The left column: the panel switcher above, and whichever panel it selects
+   below. Fixed width so the buffer beside it never reflows on a switch. */
+.side {
+  display: flex;
   flex: none;
+  flex-direction: column;
   width: 240px;
   min-height: 0;
   border-right: 1px solid var(--dsw-alias-border-l2);
+}
+
+.switcher {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding: 6px 6px 0;
+}
+
+.switch {
+  flex: 1 1 auto;
+  height: 22px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-tertiary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+}
+
+.switch:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.switch:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.switchActive {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+/* The selected panel fills the rest of the column and owns its own scrolling,
+   with the same containment the tree uses. */
+.panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
+}
+
+.panel::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* The tree keeps its box while another panel shows: FileTree holds the loaded
+   directory levels, and unmounting it would re-fetch them on every switch. */
+.panelHidden {
+  display: none;
+}
+
+.tree {
+  flex: 1 1 auto;
+  min-height: 0;
   /* The file list is the part that must scroll: a project has far more entries
      than fit, and the pane beside it owns its own scrolling. `contain` stops a
      wheel gesture that reaches either end from continuing into the

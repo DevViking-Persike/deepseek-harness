@@ -66,6 +66,12 @@ flowchart LR
   cfg --> plugin_dsh_base_docker_local
   plugin_dsh_base_tool_docker["tool-docker<br/>@deepseek-ai/dsh-tool-docker"]
   cfg --> plugin_dsh_base_tool_docker
+  plugin_dsh_base_git["git<br/>@deepseek-ai/dsh-git"]
+  cfg --> plugin_dsh_base_git
+  plugin_dsh_base_git_local["git-local<br/>@deepseek-ai/dsh-git-local"]
+  cfg --> plugin_dsh_base_git_local
+  plugin_dsh_base_tool_git["tool-git<br/>@deepseek-ai/dsh-tool-git"]
+  cfg --> plugin_dsh_base_tool_git
   plugin_dsh_base_sandbox["sandbox<br/>@deepseek-ai/dsh-sandbox-local"]
   cfg --> plugin_dsh_base_sandbox
   plugin_dsh_base_sandbox_policy["sandbox-policy<br/>@deepseek-ai/dsh-sandbox-policy"]
@@ -215,6 +221,9 @@ flowchart LR
 | `docker` | `@deepseek-ai/dsh-docker` |
 | `docker-local` | `@deepseek-ai/dsh-docker-local` |
 | `tool-docker` | `@deepseek-ai/dsh-tool-docker` |
+| `git` | `@deepseek-ai/dsh-git` |
+| `git-local` | `@deepseek-ai/dsh-git-local` |
+| `tool-git` | `@deepseek-ai/dsh-tool-git` |
 | `sandbox` | `@deepseek-ai/dsh-sandbox-local` |
 | `sandbox-policy` | `@deepseek-ai/dsh-sandbox-policy` |
 | `bash-sandbox` | `@deepseek-ai/dsh-bash-sandbox` |

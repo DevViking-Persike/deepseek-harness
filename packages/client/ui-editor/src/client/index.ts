@@ -6,11 +6,14 @@
  */
 import type { ConnectionHandle, IApiClient, RpcError } from '@deepseek-ai/dsh-api-remotes/client'
 import type { ClientContext, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: the 'conversation.view' SlotMap row (declared by the slot's
 // owning package) must be in the program for the register call to type.
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+// The panel slot this tab declares, plus the owner share it passes there.
+import type {} from './contract.ts'
 import { en, NS, zh } from './locales.ts'
 import { EditorDenied, EditorStale, EditorUnavailable, EditorView } from './EditorView.tsx'
 import type { EditorFileBuffer, EditorListing, EditorViewInjected } from './EditorView.tsx'
@@ -18,6 +21,7 @@ import type { EditorFileBuffer, EditorListing, EditorViewInjected } from './Edit
 export type {
   EditorFileBuffer, EditorListing, EditorViewInjected, EditorViewProps,
 } from './EditorView.tsx'
+export type { EditorPanelOwnerProps } from './contract.ts'
 
 /** Required services: the conversation slot registry, the wire client, and the locale service. */
 export const inject = ['slots', 'connection', 'locale']
@@ -66,7 +70,30 @@ export function apply(ctx: ClientContext): void {
   // Built once so the identities stay stable across inject reads: the view
   // keys its load effects on them, and a fresh closure per read would restart
   // every request on each render.
+  /**
+   * The panel ring's entries, projected for the tab's switcher. Read through
+   * the slot registry rather than held here, so a panel that mounts or
+   * unmounts after this tab rendered changes the switcher with it.
+   */
+  const panels = {
+    list: () => {
+      const entries: { id: string; label: string }[] = []
+      for (const entry of ctx.slots.entries('conversation.view.editor.panel')) {
+        /* v8 ignore next -- unreachable: list registration validates id at load. */
+        if (entry.options.id === undefined) continue
+        entries.push({
+          id: entry.options.id,
+          label: resolveSlotLabel(entry.options.label) ?? entry.options.id,
+        })
+      }
+      return entries
+    },
+    subscribe: (fn: () => void) => ctx.slots.subscribe('conversation.view.editor.panel', fn),
+    version: () => ctx.slots.getVersion('conversation.view.editor.panel'),
+  }
+
   const makeInjected = (sessionId: SessionId): EditorViewInjected => ({
+    panels,
     languageServers: async (signal) => {
       const response = await editor().languageServers({}, signal)
       if (!response.result.ok) throw editorFailure(response.result.error)
@@ -99,6 +126,11 @@ export function apply(ctx: ClientContext): void {
     order: 30,
     locale: NS,
     label: () => t('view.editor'),
+    // Declaring is claiming: this tab renders the panel ring itself, through
+    // the switcher beside its file tree.
+    children: {
+      'conversation.view.editor.panel': { kind: 'list', scope: 'session' },
+    },
     inject: makeInjected,
   }, EditorView))
 }

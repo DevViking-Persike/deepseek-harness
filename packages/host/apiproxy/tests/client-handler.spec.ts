@@ -99,6 +99,9 @@ function scriptedApi(overrides: {
     git: {
       listRepositories: r => ok(r, { repositories: [], truncated: false }),
       status: r => ok(r, { root: r.payload.root, ahead: 0, behind: 0, changes: [], truncated: false }),
+      worktrees: r => ok(r, { worktrees: [] }),
+      compareBases: r => ok(r, { comparisons: [] }),
+      graph: r => ok(r, { commits: [], branches: [], truncated: false }),
       diff: r => ok(r, { path: r.payload.path, oldText: '', newText: '', binary: false }),
       log: r => ok(r, { commits: [] }),
       stage: r => ok(r, { root: r.payload.root, ahead: 0, behind: 0, changes: [], truncated: false }),

@@ -815,6 +815,95 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'git',
+    summary: 'The Git access service, registered as `ctx.git` (one instance per context).',
+    description: 'The Git access service, registered as `ctx.git` (one instance per context).\n\nSelection semantics, resolved at execution time and never order-dependent:\n\n- A configured id that is registered and `available()` → that provider.\n- A configured id not registered → `GIT_PROVIDER_CONFIGURED_MISSING`.\n- A configured id registered but unavailable → `GIT_PROVIDER_CONFIGURED_UNAVAILABLE`.\n- No id configured, exactly one registered usable provider → that provider.\n- No id configured, several usable providers → `GIT_PROVIDER_AMBIGUOUS`.\n- No id configured, no usable provider → `GIT_PROVIDER_UNAVAILABLE`.\n\nAvailability is re-probed on every call rather than cached: a repository is initialized, cloned, or deleted during an ordinary session, and a cached answer would route an operation to a backend that no longer applies.',
+    methods: [
+      {
+        signature: 'registerProvider(provider: GitProvider): () => void',
+        description: 'Register one Git backend.',
+        parameters: [{ name: 'provider', description: 'the backend to add.' }],
+        returns: 'a disposer that removes it; runs with the calling fiber.',
+      },
+      {
+        signature: 'providerIds(): readonly string[]',
+        description: 'Ids of every registered backend, in registration order. Selection never consults this order; it exists for diagnostics and provider display.',
+        parameters: [],
+        returns: 'the registered provider ids.',
+      },
+      {
+        signature: 'async discover(request: GitDiscoverRequest, signal?: AbortSignal): Promise<GitDiscoverResult>',
+        description: 'Find repositories beneath the requested roots on the selected backend.',
+        parameters: [{ name: 'request', description: 'roots, depth bound, and result bound.' }, { name: 'signal', description: 'cancellation for the scan.' }],
+        returns: 'the discovered repositories and whether the scan was cut short.',
+      },
+      {
+        signature: 'async status(root: string, signal?: AbortSignal): Promise<GitStatus>',
+        description: 'Read one repository\'s working-tree status on the selected backend.',
+        parameters: [{ name: 'root', description: 'absolute working-tree root.' }, { name: 'signal', description: 'cancellation for the underlying call.' }],
+        returns: 'the branch facts and every changed path.',
+      },
+      {
+        signature: 'async worktrees(root: string, signal?: AbortSignal): Promise<readonly GitWorktree[]>',
+        description: 'List every checkout of one repository on the selected backend.',
+        parameters: [{ name: 'root', description: 'absolute path of any checkout of the repository.' }, { name: 'signal', description: 'cancellation for the underlying call.' }],
+        returns: 'the repository\'s worktrees, main working tree first.',
+      },
+      {
+        signature: 'async compareBases(request: GitBaseRequest, signal?: AbortSignal): Promise<readonly GitBaseComparison[]>',
+        description: 'Compare one checkout against each named integration branch on the selected backend — the "did main move under me" question asked before a push.',
+        parameters: [{ name: 'request', description: 'the checkout and the base names to compare against.' }, { name: 'signal', description: 'cancellation for the underlying call.' }],
+        returns: 'one comparison per requested base, in the order asked.',
+      },
+      {
+        signature: 'async graph(request: GitGraphRequest, signal?: AbortSignal): Promise<GitGraph>',
+        description: 'Read the commit graph and its branches on the selected backend.',
+        parameters: [{ name: 'request', description: 'the checkout and the commit bound.' }, { name: 'signal', description: 'cancellation for the underlying call.' }],
+        returns: 'the commits, the branches, and whether the read was cut short.',
+      },
+      {
+        signature: 'async diff(request: GitDiffRequest, signal?: AbortSignal): Promise<GitDiff>',
+        description: 'Read one file\'s before and after content on the selected backend.',
+        parameters: [{ name: 'request', description: 'repository, path, and index side.' }, { name: 'signal', description: 'cancellation for the underlying call.' }],
+        returns: 'both sides of the file\'s content.',
+      },
+      {
+        signature: 'async log(request: GitLogRequest, signal?: AbortSignal): Promise<readonly GitCommit[]>',
+        description: 'Read a repository\'s commit history on the selected backend.',
+        parameters: [{ name: 'request', description: 'repository, bound, and optional path filter.' }, { name: 'signal', description: 'cancellation for the underlying call.' }],
+        returns: 'the commits, newest first.',
+      },
+      {
+        signature: 'async readBlob(root: string, oid: string, signal?: AbortSignal): Promise<string>',
+        description: 'Read one object\'s content by id on the selected backend, so a discard can be undone.',
+        parameters: [{ name: 'root', description: 'absolute working-tree root.' }, { name: 'oid', description: 'object id, normally a `GitDiscardResult.recoveredOid`.' }, { name: 'signal', description: 'cancellation for the underlying call.' }],
+        returns: 'the object\'s text.',
+      },
+      {
+        signature: 'async stage(request: GitStageRequest, signal?: AbortSignal): Promise<void>',
+        description: 'Add paths to the index on the selected backend.',
+        parameters: [{ name: 'request', description: 'repository and paths.' }, { name: 'signal', description: 'cancellation for the underlying call.' }],
+      },
+      {
+        signature: 'async unstage(request: GitStageRequest, signal?: AbortSignal): Promise<void>',
+        description: 'Remove paths from the index on the selected backend, leaving the working tree untouched.',
+        parameters: [{ name: 'request', description: 'repository and paths.' }, { name: 'signal', description: 'cancellation for the underlying call.' }],
+      },
+      {
+        signature: 'async discard(request: GitDiscardRequest, signal?: AbortSignal): Promise<GitDiscardResult>',
+        description: 'Restore one path on the selected backend, preserving the replaced content first so the discard can be undone.',
+        parameters: [{ name: 'request', description: 'repository, path, and which side to discard.' }, { name: 'signal', description: 'cancellation for the underlying call.' }],
+        returns: 'the path and the object id its prior content was preserved as.',
+      },
+      {
+        signature: 'async commit(request: GitCommitRequest, signal?: AbortSignal): Promise<GitCommit>',
+        description: 'Commit the staged changes on the selected backend.',
+        parameters: [{ name: 'request', description: 'repository and message.' }, { name: 'signal', description: 'cancellation for the underlying call.' }],
+        returns: 'the created commit.',
+      },
+    ],
+  },
+  {
     key: 'goals',
     summary: 'Goal service (`ctx.goals`) backed exclusively by the owning session log.',
     description: 'Goal service (`ctx.goals`) backed exclusively by the owning session log.',
@@ -3356,6 +3445,98 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'GenericResultView',
     declaration: 'export interface GenericResultView {\n    card: \'generic\';\n    title?: string;\n    content?: ContentBlock[];\n}',
+  },
+  {
+    name: 'GitBaseComparison',
+    declaration: 'export interface GitBaseComparison {\n    readonly base: string;\n    readonly exists: boolean;\n    readonly ahead: number;\n    readonly behind: number;\n    readonly conflicts?: boolean;\n}',
+  },
+  {
+    name: 'GitBaseRequest',
+    declaration: 'export interface GitBaseRequest {\n    readonly root: string;\n    readonly bases: readonly string[];\n}',
+  },
+  {
+    name: 'GitBranch',
+    declaration: 'export interface GitBranch {\n    readonly name: string;\n    readonly head: string;\n    readonly upstream?: string;\n    readonly current: boolean;\n}',
+  },
+  {
+    name: 'GitChangeKind',
+    declaration: 'export type GitChangeKind = \'unmodified\' | \'added\' | \'modified\' | \'deleted\' | \'renamed\' | \'copied\' | \'typechange\' | \'untracked\' | \'ignored\' | \'conflicted\';',
+  },
+  {
+    name: 'GitCommit',
+    declaration: 'export interface GitCommit {\n    readonly id: string;\n    readonly subject: string;\n    readonly authorName: string;\n    readonly authorEmail: string;\n    readonly authoredAt: string;\n    readonly parents: readonly string[];\n}',
+  },
+  {
+    name: 'GitCommitRequest',
+    declaration: 'export interface GitCommitRequest {\n    readonly root: string;\n    readonly message: string;\n}',
+  },
+  {
+    name: 'GitDiff',
+    declaration: 'export interface GitDiff {\n    readonly path: string;\n    readonly oldText: string | null;\n    readonly newText: string | null;\n    readonly binary: boolean;\n}',
+  },
+  {
+    name: 'GitDiffRequest',
+    declaration: 'export interface GitDiffRequest {\n    readonly root: string;\n    readonly path: string;\n    readonly side: GitDiffSide;\n}',
+  },
+  {
+    name: 'GitDiffSide',
+    declaration: 'export type GitDiffSide = \'worktree\' | \'index\';',
+  },
+  {
+    name: 'GitDiscardRequest',
+    declaration: 'export interface GitDiscardRequest {\n    readonly root: string;\n    readonly path: string;\n    readonly side: GitDiffSide;\n}',
+  },
+  {
+    name: 'GitDiscardResult',
+    declaration: 'export interface GitDiscardResult {\n    readonly path: string;\n    readonly recoveredOid?: string;\n}',
+  },
+  {
+    name: 'GitDiscoverRequest',
+    declaration: 'export interface GitDiscoverRequest {\n    readonly roots: readonly string[];\n    readonly maxDepth: number;\n    readonly limit: number;\n}',
+  },
+  {
+    name: 'GitDiscoverResult',
+    declaration: 'export interface GitDiscoverResult {\n    readonly repositories: readonly GitRepository[];\n    readonly truncated: boolean;\n}',
+  },
+  {
+    name: 'GitFileChange',
+    declaration: 'export interface GitFileChange {\n    readonly path: string;\n    readonly absolutePath: string;\n    readonly index: GitChangeKind;\n    readonly worktree: GitChangeKind;\n    readonly origPath?: string;\n    readonly similarity?: number;\n    readonly binary: boolean;\n    readonly insertions?: number;\n    readonly deletions?: number;\n}',
+  },
+  {
+    name: 'GitGraph',
+    declaration: 'export interface GitGraph {\n    readonly commits: readonly GitGraphCommit[];\n    readonly branches: readonly GitBranch[];\n    readonly truncated: boolean;\n}',
+  },
+  {
+    name: 'GitGraphCommit',
+    declaration: 'export interface GitGraphCommit {\n    readonly id: string;\n    readonly parents: readonly string[];\n    readonly refs: readonly string[];\n    readonly subject: string;\n    readonly authorName: string;\n    readonly authoredAt: string;\n}',
+  },
+  {
+    name: 'GitGraphRequest',
+    declaration: 'export interface GitGraphRequest {\n    readonly root: string;\n    readonly limit: number;\n}',
+  },
+  {
+    name: 'GitLogRequest',
+    declaration: 'export interface GitLogRequest {\n    readonly root: string;\n    readonly limit: number;\n    readonly path?: string;\n}',
+  },
+  {
+    name: 'GitProvider',
+    declaration: 'export interface GitProvider {\n    readonly id: string;\n    available: () => Promise<boolean>;\n    discover: (request: GitDiscoverRequest, signal?: AbortSignal) => Promise<GitDiscoverResult>;\n    status: (root: string, signal?: AbortSignal) => Promise<GitStatus>;\n    worktrees: (root: string, signal?: AbortSignal) => Promise<readonly GitWorktree[]>;\n    compareBases: (request: GitBaseRequest, signal?: AbortSignal) => Promise<readonly GitBaseComparison[]>;\n    graph: (request: GitGraphRequest, signal?: AbortSignal) => Promise<GitGraph>;\n    diff: (request: GitDiffRequest, signal?: AbortSignal) => Promise<GitDiff>;\n    log: (request: GitLogRequest, signal?: AbortSignal) => Promise<readonly GitCommit[]>;\n    readBlob: (root: string, oid: string, signal?: AbortSignal) => Promise<string>;\n    stage: (request: GitStageRequest, signal?: AbortSignal) => Promise<void>;\n    unstage: (request: GitStageRequest, signal?: AbortSignal) => Promise<void>;\n    discard: (request: GitDiscardRequest, signal?: AbortSignal) => Promise<GitDiscardResult>;\n    commit: (request: GitCommitRequest, signal?: AbortSignal) => Promise<GitCommit>;\n}',
+  },
+  {
+    name: 'GitRepository',
+    declaration: 'export interface GitRepository {\n    readonly root: string;\n    readonly name: string;\n    readonly workspacePath: string;\n    readonly submodule: boolean;\n}',
+  },
+  {
+    name: 'GitStageRequest',
+    declaration: 'export interface GitStageRequest {\n    readonly root: string;\n    readonly paths: readonly string[];\n}',
+  },
+  {
+    name: 'GitStatus',
+    declaration: 'export interface GitStatus {\n    readonly root: string;\n    readonly branch?: string;\n    readonly head?: string;\n    readonly upstream?: string;\n    readonly ahead: number;\n    readonly behind: number;\n    readonly changes: readonly GitFileChange[];\n    readonly truncated: boolean;\n}',
+  },
+  {
+    name: 'GitWorktree',
+    declaration: 'export interface GitWorktree {\n    readonly path: string;\n    readonly name: string;\n    readonly branch?: string;\n    readonly head?: string;\n    readonly main: boolean;\n    readonly detached: boolean;\n    readonly bare: boolean;\n    readonly locked?: string;\n    readonly prunable?: string;\n}',
   },
   {
     name: 'GoalActivation',

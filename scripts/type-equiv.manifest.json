@@ -2009,6 +2009,121 @@
       "doc": "docs/subsystems/feedback.md",
       "symbol": "MessageFeedbackDeleteResult",
       "source": "packages/feedback/message-feedback/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitChangeKind",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitFileChange",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitStatus",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitRepository",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitDiscoverRequest",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitDiscoverResult",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitWorktree",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitBaseComparison",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitBaseRequest",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitGraphCommit",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitBranch",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitGraphRequest",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitGraph",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitDiffSide",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitDiffRequest",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitDiff",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitCommit",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitLogRequest",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitStageRequest",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitDiscardRequest",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitDiscardResult",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitCommitRequest",
+      "source": "packages/git/git/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/git.md",
+      "symbol": "GitProvider",
+      "source": "packages/git/git/src/types.ts"
     }
   ]
 }

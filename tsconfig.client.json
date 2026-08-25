@@ -89,6 +89,7 @@
     { "path": "./packages/client/ui-trajectory" },
     { "path": "./packages/client/ui-docker" },
     { "path": "./packages/client/ui-editor" },
+    { "path": "./packages/client/ui-git" },
     { "path": "./packages/client/ui-knowledge" },
     { "path": "./packages/session-query/session-log-export" },
     { "path": "./packages/client/ui-theme" },

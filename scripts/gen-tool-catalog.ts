@@ -65,6 +65,8 @@ import * as ToolSubagent from '@deepseek-ai/dsh-tool-subagent'
 import * as ToolWeb from '@deepseek-ai/dsh-tool-web'
 import DockerRuntime from '@deepseek-ai/dsh-docker'
 import * as ToolDocker from '@deepseek-ai/dsh-tool-docker'
+import GitRuntime from '@deepseek-ai/dsh-git'
+import * as ToolGit from '@deepseek-ai/dsh-tool-git'
 import VmWorkflowEngine from '@deepseek-ai/dsh-workflow-worker-thread'
 import * as ToolRalph from '@deepseek-ai/dsh-tool-ralph'
 import * as ToolWorkflow from '@deepseek-ai/dsh-tool-workflow'
@@ -622,6 +624,22 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'The read-only tools ship enabled while the Compose lifecycle pair is opt-in (`compose`, default false), so a shipped tree normally exposes only docker_ps, docker_images, and docker_logs. The docker_logs description states the configured maxLogChars. Registration follows enablement, not backend availability: without a usable provider each call fails with a structured DockerError instead of removing the schema.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-git',
+    dir: 'tool-git',
+    source: 'packages/git/tool-git/src/index.ts',
+    requires: ['ctx.tools', 'ctx.git', 'ctx.systemPrompt'],
+    writes: ['tool/call', 'tool/result', 'index, working-tree, and commit state for the mutating tools'],
+    async mount(ctx) {
+      // The seam alone satisfies the inject; schemas do not depend on a
+      // registered backend. The mutating group is opt-in, so the harvest
+      // enables it to catalogue every schema.
+      await ctx.plugin(GitRuntime, {})
+      await ctx.plugin(ToolGit, { mutate: true })
+    },
+    note:
+      'The read-only tools ship enabled while the mutating group is opt-in (`mutate`, default false), so a shipped tree normally exposes only git_status, git_diff, and git_log. git_discard preserves the content it replaces and reports a recoveryId, so a discard stays undoable. Registration follows enablement, not backend availability: without a usable provider each call fails with a structured GitError instead of removing the schema.',
   },
 ]
 

@@ -183,6 +183,8 @@ describe('the editor registers indentation on open', () => {
       }),
       readFile: () => Promise.resolve({ path: '/w/main.go', content: 'package main\n', version: 'v1' }),
       languageServers: () => Promise.resolve([]),
+      panels: { list: () => [], subscribe: () => () => {}, version: () => 0 },
+      renderSlot: () => null,
       writeFile: () => Promise.resolve('v2'),
       t: (key: string) => zh[key as keyof typeof zh] ?? key,
     } as unknown as EditorViewProps

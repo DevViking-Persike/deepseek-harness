@@ -93,6 +93,7 @@ export class ApiProxyService extends Service implements ApiProxy {
   readonly goals: ApiProxy['goals']
   readonly skills: ApiProxy['skills']
   readonly editor: ApiProxy['editor']
+  readonly git: ApiProxy['git']
   readonly docker: ApiProxy['docker']
   readonly agentPresets: ApiProxy['agentPresets']
   readonly settings: ApiProxy['settings']
@@ -126,6 +127,7 @@ export class ApiProxyService extends Service implements ApiProxy {
     this.goals = api.goals
     this.skills = api.skills
     this.editor = api.editor
+    this.git = api.git
     this.docker = api.docker
     this.agentPresets = api.agentPresets
     this.settings = api.settings

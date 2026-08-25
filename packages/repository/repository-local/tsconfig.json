@@ -1,0 +1,24 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "paths": {
+      "@deepseek-ai/dsh-repository": ["../repository/lib/types/index.d.ts"]
+    }
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    { "path": "../../../vendor/cosmokit" },
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../../vendor/schemastery" },
+    { "path": "../../util/brand" },
+    { "path": "../../llm/llm" },
+    { "path": "../../runtime-diagnostics/invariants" },
+    { "path": "../repository" },
+    { "path": "../../git/git" },
+    { "path": "../../storage/storage-domain" }
+  ]
+}

@@ -6,6 +6,7 @@ export const NS = 'editor'
 /** The editor dictionary key set (the source of truth for both locales). */
 export type EditorKey =
   | 'view.editor'
+  | 'panel.files'
   | 'tree.loading'
   | 'tree.empty'
   | 'tree.failed'
@@ -45,6 +46,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh: Record<EditorKey, string> = {
   'view.editor': '编辑器',
+  'panel.files': '文件',
   'tree.loading': '正在加载文件…',
   'tree.empty': '该目录为空',
   'tree.failed': '读取目录失败：{reason}',
@@ -78,6 +80,7 @@ export const zh: Record<EditorKey, string> = {
 /** English dictionary. */
 export const en: Record<EditorKey, string> = {
   'view.editor': 'Editor',
+  'panel.files': 'Files',
   'tree.loading': 'Loading files…',
   'tree.empty': 'This directory is empty',
   'tree.failed': 'Reading the directory failed: {reason}',

@@ -48,6 +48,13 @@ import {
   editorLanguageServersRequestSchema, editorListDirRequestSchema, editorReadFileRequestSchema, editorWriteFileRequestSchema,
 } from '../api/editor.schema.ts'
 import {
+  gitCommitRequestSchema, gitDiffRequestSchema, gitDiscardRequestSchema,
+  gitListRepositoriesRequestSchema, gitLogRequestSchema, gitRecoverRequestSchema,
+  gitStageRequestSchema, gitStatusRequestSchema, gitUnstageRequestSchema,
+  gitWorktreesRequestSchema,
+  gitCompareBasesRequestSchema, gitGraphRequestSchema,
+} from '../api/git.schema.ts'
+import {
   dockerBrowseComposeRequestSchema, dockerComposeDownRequestSchema, dockerComposeUpRequestSchema,
   dockerEngineStatusRequestSchema, dockerInstallEngineRequestSchema, dockerStartEngineRequestSchema,
   dockerControlRequestSchema,
@@ -130,6 +137,18 @@ const UNARY_ROUTES: UnaryRoutes = {
   'editor.listDir': { schema: editorListDirRequestSchema, invoke: (api, r, signal) => api.editor.listDir(r, signal) },
   'editor.readFile': { schema: editorReadFileRequestSchema, invoke: (api, r, signal) => api.editor.readFile(r, signal) },
   'editor.writeFile': { schema: editorWriteFileRequestSchema, invoke: (api, r, signal) => api.editor.writeFile(r, signal) },
+  'git.listRepositories': { schema: gitListRepositoriesRequestSchema, invoke: (api, r, signal) => api.git.listRepositories(r, signal) },
+  'git.status': { schema: gitStatusRequestSchema, invoke: (api, r, signal) => api.git.status(r, signal) },
+  'git.worktrees': { schema: gitWorktreesRequestSchema, invoke: (api, r, signal) => api.git.worktrees(r, signal) },
+  'git.compareBases': { schema: gitCompareBasesRequestSchema, invoke: (api, r, signal) => api.git.compareBases(r, signal) },
+  'git.graph': { schema: gitGraphRequestSchema, invoke: (api, r, signal) => api.git.graph(r, signal) },
+  'git.diff': { schema: gitDiffRequestSchema, invoke: (api, r, signal) => api.git.diff(r, signal) },
+  'git.log': { schema: gitLogRequestSchema, invoke: (api, r, signal) => api.git.log(r, signal) },
+  'git.stage': { schema: gitStageRequestSchema, invoke: (api, r, signal) => api.git.stage(r, signal) },
+  'git.unstage': { schema: gitUnstageRequestSchema, invoke: (api, r, signal) => api.git.unstage(r, signal) },
+  'git.discard': { schema: gitDiscardRequestSchema, invoke: (api, r, signal) => api.git.discard(r, signal) },
+  'git.recover': { schema: gitRecoverRequestSchema, invoke: (api, r, signal) => api.git.recover(r, signal) },
+  'git.commit': { schema: gitCommitRequestSchema, invoke: (api, r, signal) => api.git.commit(r, signal) },
   'docker.engineStatus': { schema: dockerEngineStatusRequestSchema, invoke: (api, r, signal) => api.docker.engineStatus(r, signal) },
   'docker.startEngine': { schema: dockerStartEngineRequestSchema, invoke: (api, r, signal) => api.docker.startEngine(r, signal) },
   'docker.installEngine': { schema: dockerInstallEngineRequestSchema, invoke: (api, r, signal) => api.docker.installEngine(r, signal) },
@@ -197,7 +216,6 @@ function fullResponse(narrow: RpcResponse<unknown>): Response {
  */
 // K appears once in the signature but ties the UNARY_ROUTES[K] row lookup to its own
 // schema/invoke pairing; a union parameter degrades the row to an uninvokable intersection.
-// oxlint-disable-next-line typescript/no-unnecessary-type-parameters
 async function handleUnary<K extends keyof RpcMethodMap>(
   api: ApiProxy, method: K, message: ClientRequest, signal: AbortSignal,
 ): Promise<Response> {

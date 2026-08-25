@@ -760,6 +760,54 @@ export type Config = LocalConfig
 
 来源：[`packages/fs/fs-sandbox/src/index.ts:49`](../packages/fs/fs-sandbox/src/index.ts)
 
+<a id="deepseek-aidsh-git"></a>
+
+## `@deepseek-ai/dsh-git`
+
+```ts config-catalog
+/**
+ * Config for the Git seam. `provider` pins which backend wins; it is optional
+ * because a single registered usable provider auto-selects. Operational
+ * overrides must feed this same field rather than introduce a hidden priority
+ * chain.
+ */
+export interface GitRuntimeConfig {
+  /** Explicit provider id. Omitted = auto-select when exactly one is usable. */
+  readonly provider?: string
+}
+```
+
+来源：[`packages/git/git/src/index.ts:74`](../packages/git/git/src/index.ts)
+
+<a id="deepseek-aidsh-git-local"></a>
+
+## `@deepseek-ai/dsh-git-local`
+
+依赖：`git` · `subprocess`
+
+```ts config-catalog
+/** Complete config after schemastery applies every field default. */
+type ResolvedConfig = Required<Config>
+
+/** Plugin config: which CLI to run and the limits each invocation carries. */
+export interface Config {
+  /** Executable name or absolute path of the Git CLI. */
+  cli?: string
+  /** Cooperative timeout for one read (status, diff, log, discovery). */
+  readTimeoutMs?: number
+  /** Cooperative timeout for one mutation (stage, unstage, discard, commit). */
+  writeTimeoutMs?: number
+  /** Cap on collected output bytes of one invocation. */
+  maxOutputBytes?: number
+  /** Termination grace period handed to the subprocess seam. */
+  graceMs?: number
+  /** Largest number of changed paths one status reports before truncating. */
+  maxChanges?: number
+}
+```
+
+来源：[`packages/git/git-local/src/index.ts:55`](../packages/git/git-local/src/index.ts)
+
 <a id="deepseek-aidsh-goal"></a>
 
 ## `@deepseek-ai/dsh-goal`
@@ -2868,6 +2916,38 @@ export interface Config {
 
 来源：[`packages/fs/tool-fs-search/src/index.ts:73`](../packages/fs/tool-fs-search/src/index.ts)
 
+<a id="deepseek-aidsh-tool-git"></a>
+
+## `@deepseek-ai/dsh-tool-git`
+
+依赖：`tools` · `git` · `systemPrompt`
+
+```ts config-catalog
+/** Complete config after schemastery applies every field default. */
+type ResolvedConfig = Required<Config>
+
+/** Plugin config: which Git tools to register, their budgets, and output caps. */
+export interface Config {
+  /** Register the read-only `git_status` / `git_diff` / `git_log` tools. Defaults to true. */
+  inspect?: boolean
+  /**
+   * Register the state-changing `git_stage` / `git_unstage` / `git_discard` /
+   * `git_commit` tools. Defaults to false: `git_discard` destroys uncommitted
+   * work and `git_commit` writes history, and a read-only Git view is useful
+   * without either.
+   */
+  mutate?: boolean
+  /** Cooperative timeout budget (ms) for one read-only call. */
+  inspectTimeoutMs?: number
+  /** Cooperative timeout budget (ms) for one mutating call; hooks run here. */
+  mutateTimeoutMs?: number
+  /** Cap on characters one `git_diff` call emits per side. */
+  maxDiffChars?: number
+}
+```
+
+来源：[`packages/git/tool-git/src/index.ts:54`](../packages/git/tool-git/src/index.ts)
+
 <a id="deepseek-aidsh-tool-goal"></a>
 
 ## `@deepseek-ai/dsh-tool-goal`
@@ -3507,6 +3587,7 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-directory-picker-native`（[`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-docker`（[`packages/client/ui-docker/src/index.ts`](../packages/client/ui-docker/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-editor`（[`packages/client/ui-editor/src/index.ts`](../packages/client/ui-editor/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-git`（[`packages/client/ui-git/src/index.ts`](../packages/client/ui-git/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-goal`（[`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-input-trigger`（[`packages/client/ui-input-trigger/src/index.ts`](../packages/client/ui-input-trigger/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-jobs`（[`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts)）

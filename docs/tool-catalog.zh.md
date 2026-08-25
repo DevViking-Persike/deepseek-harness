@@ -44,6 +44,7 @@
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
 | `@deepseek-ai/dsh-tool-docker` | `docker_compose_down`、`docker_compose_up`、`docker_images`、`docker_logs`、`docker_ps` | `ctx.tools`、`ctx.docker`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`生命周期工具涉及的容器与 Compose 项目状态` | - | 只读工具默认启用，而 Compose 生命周期这对工具需显式开启（`compose`，默认 false），因此已发布的插件树通常只暴露 docker_ps、docker_images 和 docker_logs。docker_logs 的描述会陈述已配置的 maxLogChars。注册遵循启用状态而非后端可用性：没有可用提供方时，每次调用以结构化 DockerError 失败，而不是移除 schema。 |
+| `@deepseek-ai/dsh-tool-git` | `git_commit`、`git_diff`、`git_discard`、`git_log`、`git_stage`、`git_status`、`git_unstage` | `ctx.tools`、`ctx.git`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`改动类工具涉及的索引、工作区与提交状态` | - | 只读工具默认启用，而改动组需显式开启（`mutate`，默认 false），因此已发布的插件树通常只暴露 git_status、git_diff 和 git_log。git_discard 会保留它所替换的内容并报告一个 recoveryId，使丢弃保持可撤销。注册遵循启用状态而非后端可用性：没有可用提供方时，每次调用以结构化 GitError 失败，而不是移除 schema。 |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 
@@ -2351,3 +2352,203 @@ web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可�
 来源：[`packages/docker/tool-docker/src/index.ts`](../packages/docker/tool-docker/src/index.ts)
 
 只读工具默认启用，而 Compose 生命周期这对工具需显式开启（`compose`，默认 false），因此已发布的插件树通常只暴露 docker_ps、docker_images 和 docker_logs。docker_logs 的描述会陈述已配置的 maxLogChars。注册遵循启用状态而非后端可用性：没有可用提供方时，每次调用以结构化 DockerError 失败，而不是移除 schema。
+
+<a id="deepseek-aidsh-tool-git"></a>
+
+## `@deepseek-ai/dsh-tool-git`
+
+### `git_commit`
+
+将已暂存的改动记录为一个提交。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "message": {
+      "type": "string",
+      "description": "Commit message; its first line is the subject."
+    }
+  },
+  "required": [
+    "repository",
+    "message"
+  ]
+}
+```
+
+来源：[`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_diff`
+
+读取一个文件改动前后的内容。每侧至多返回 40000 个字符。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "path": {
+      "type": "string",
+      "description": "Repository-relative path of the file to compare."
+    },
+    "staged": {
+      "type": "boolean",
+      "description": "Compare the staged change against the last commit instead of the working tree against the index."
+    }
+  },
+  "required": [
+    "repository",
+    "path"
+  ]
+}
+```
+
+来源：[`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_discard`
+
+恢复一个文件，丢弃其未提交的改动。会报告一个可用于还原被丢弃内容的 recoveryId。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "path": {
+      "type": "string",
+      "description": "Repository-relative path to restore."
+    },
+    "staged": {
+      "type": "boolean",
+      "description": "Discard the staged change instead of the working-tree edit."
+    }
+  },
+  "required": [
+    "repository",
+    "path"
+  ]
+}
+```
+
+来源：[`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_log`
+
+读取一个 Git 仓库的最近提交，最新的在前。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "limit": {
+      "type": "number",
+      "description": "Number of commits to read."
+    },
+    "path": {
+      "type": "string",
+      "description": "Only commits touching this repository-relative path."
+    }
+  },
+  "required": [
+    "repository"
+  ]
+}
+```
+
+来源：[`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_stage`
+
+把文件加入 Git 索引，使下一次提交包含它们。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "paths": {
+      "type": "array",
+      "description": "Repository-relative paths to stage.",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "repository",
+    "paths"
+  ]
+}
+```
+
+来源：[`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_status`
+
+显示一个 Git 仓库中哪些文件发生了改动，以及每个改动的已暂存与未暂存状态。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    }
+  },
+  "required": [
+    "repository"
+  ]
+}
+```
+
+来源：[`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+### `git_unstage`
+
+把文件移出 Git 索引，且不改变它们在磁盘上的内容。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "string",
+      "description": "Absolute path of the repository working-tree root."
+    },
+    "paths": {
+      "type": "array",
+      "description": "Repository-relative paths to unstage.",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "repository",
+    "paths"
+  ]
+}
+```
+
+来源：[`packages/git/tool-git/src/index.ts`](../packages/git/tool-git/src/index.ts)
+
+只读工具默认启用，而改动组需显式开启（`mutate`，默认 false），因此已发布的插件树通常只暴露 git_status、git_diff 和 git_log。git_discard 会保留它所替换的内容并报告一个 recoveryId，使丢弃保持可撤销。注册遵循启用状态而非后端可用性：没有可用提供方时，每次调用以结构化 GitError 失败，而不是移除 schema。

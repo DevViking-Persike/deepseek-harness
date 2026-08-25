@@ -6,10 +6,12 @@
  * a reload-or-lose choice rather than silently winning.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import clsx from 'clsx'
 import type { ConvViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+// The panel slot this tab declares, plus the owner share it passes there.
+import type {} from './contract.ts'
 import type { EditorDirEntry } from '@deepseek-ai/dsh-api-remotes/client'
 import { FileTree } from './FileTree.tsx'
 import { languageOf, loadMonaco } from './monaco.ts'
@@ -33,8 +35,23 @@ export interface EditorListing {
   entries: readonly EditorDirEntry[]
 }
 
+/** One panel registered in this tab's panel ring, as the switcher shows it. */
+export interface EditorPanelTab {
+  id: string
+  label: string
+}
+
 /** Wire calls injected from the plugin's apply closure. */
 export interface EditorViewInjected {
+  /**
+   * The panel ring's live entries. Read through the slot registry, so a panel
+   * mounting or unmounting after this tab rendered changes the switcher too.
+   */
+  panels: {
+    list: () => readonly EditorPanelTab[]
+    subscribe: (fn: () => void) => () => void
+    version: () => number
+  }
   /** Report which language servers this composition mounts (introspection only). */
   languageServers: (signal: AbortSignal) => Promise<readonly { id: string; extensions: readonly string[] }[]>
   /** List one directory level; an absent path lists the workspace root. */
@@ -72,6 +89,13 @@ export class EditorDenied extends Error {
   }
 }
 
+/**
+ * The switcher id of the tab's own file tree. Not a ring entry: the tree is
+ * what the editor shows when no other panel is chosen, so an empty ring leaves
+ * a working editor rather than a blank pane.
+ */
+const FILES_PANEL = 'files'
+
 /** Buffer load state for the currently open file. */
 type BufferState =
   | { kind: 'none' }
@@ -87,8 +111,15 @@ type SaveState =
   | { kind: 'stale' }
   | { kind: 'failed'; reason: string }
 
-/** Full props: the conversation-view kit, the injected wire calls, and the locale seat. */
-export type EditorViewProps = ConvViewProps & InjectFace<EditorViewInjected> & PropsLocale<'editor'>
+/**
+ * Full props: the conversation-view kit, the injected wire calls, the panel
+ * ring this tab declares, and the locale seat.
+ */
+export type EditorViewProps =
+  ConvViewProps
+  & PropsRenderSlots<'conversation.view.editor.panel'>
+  & InjectFace<EditorViewInjected>
+  & PropsLocale<'editor'>
 
 /** Failure text for a rejected call: an Error's own message, else its string form. */
 function failureText(error: unknown): string {
@@ -100,8 +131,18 @@ function failureText(error: unknown): string {
  * @param props - the conversation-view kit, the injected wire calls, and `t`.
  * @returns the file tree beside the buffer, with their honest states.
  */
-export function EditorView({ listDir, readFile, writeFile, languageServers, t }: EditorViewProps) {
+export function EditorView({
+  listDir, readFile, writeFile, languageServers, panels, renderSlot, t,
+}: EditorViewProps) {
   const [buffer, setBuffer] = useState<BufferState>({ kind: 'none' })
+  // Which side panel the switcher shows; 'files' is the tab's own tree, so an
+  // empty panel ring still leaves a working editor.
+  const [panel, setPanel] = useState(FILES_PANEL)
+  // The ring is a registry outside React, and its version is the fact that
+  // moves — the same subscription the conversation view ring makes for its
+  // own tabs.
+  useSyncExternalStore(panels.subscribe, panels.version)
+  const panelTabs = panels.list()
   const [save, setSave] = useState<SaveState>({ kind: 'idle' })
   const [dirty, setDirty] = useState(false)
   // Bumped to reopen the current file from disk after a stale save.
@@ -257,8 +298,44 @@ export function EditorView({ listDir, readFile, writeFile, languageServers, t }:
 
   return (
     <div className={css.root}>
-      <div className={css.tree} ref={tree}>
-        <FileTree listDir={listDir} onOpen={open} openPath={buffer.kind === 'ready' ? buffer.file.path : undefined} t={t} />
+      <div className={css.side}>
+        {panelTabs.length > 0 && (
+          <div className={css.switcher} role="tablist">
+            {[{ id: FILES_PANEL, label: t('panel.files') }, ...panelTabs].map(entry => (
+              <button
+                key={entry.id}
+                type="button"
+                role="tab"
+                aria-selected={panel === entry.id}
+                className={clsx(css.switch, panel === entry.id && css.switchActive)}
+                onClick={() => { setPanel(entry.id) }}
+              >
+                {entry.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className={clsx(css.tree, panel !== FILES_PANEL && css.panelHidden)} ref={tree}>
+          <FileTree listDir={listDir} onOpen={open} openPath={buffer.kind === 'ready' ? buffer.file.path : undefined} t={t} />
+        </div>
+        {panel !== FILES_PANEL && (
+          <div className={css.panel}>
+            {renderSlot('conversation.view.editor.panel', {
+              ...buffer.kind === 'ready' ? { openPath: buffer.file.path } : {},
+              openFile: open,
+              // A panel that rewrote the open file (a discard does) asks for
+              // the buffer back from disk, so the editor never shows content
+              // the working tree has already left.
+              reloadBuffer: () => {
+                if (buffer.kind !== 'ready') return
+                setBuffer({ kind: 'loading', path: buffer.file.path })
+                setSave({ kind: 'idle' })
+                setDirty(false)
+                setReload(value => value + 1)
+              },
+            }, { only: panel })}
+          </div>
+        )}
       </div>
       <div className={css.pane}>
         <div className={css.toolbar}>

@@ -1,0 +1,97 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The lane drawing and the commit rows share one coordinate space: the SVG is
+   absolutely placed over the list so a node always lands on its own row. */
+.canvas {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.lanes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  flex: none;
+  pointer-events: none;
+}
+
+.strand {
+  stroke: var(--dsw-alias-border-l2);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.node {
+  fill: var(--dsw-alias-bg-layer-1);
+  stroke: var(--dsw-alias-label-tertiary);
+  stroke-width: 1.5;
+}
+
+/* A merge is the row a reader looks for, so its node is filled rather than
+   hollow. */
+.nodeMerge {
+  fill: var(--dsw-alias-state-business-primary);
+  stroke: var(--dsw-alias-state-business-primary);
+}
+
+.rows {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  min-width: 0;
+  padding-left: 4px;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.refs {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.ref {
+  padding: 0 4px;
+  border-radius: 3px;
+  color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-bg-layer-2);
+  white-space: nowrap;
+}
+
+.subject {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.author {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+}
+
+.placeholder,
+.note {
+  margin: 0;
+  padding: 8px 4px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}

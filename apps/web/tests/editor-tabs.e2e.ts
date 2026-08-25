@@ -50,6 +50,10 @@ const EMPTY_STATES_EXPECTED = join(SNAPSHOT_DIR, 'empty-states.expected.md')
 const KNOWN_CONTROLS = [
   'Compose', 'Refresh', 'Start', 'Stop', 'Restart', 'Logs', 'Shell',
   'Save', 'Languages', 'Reload',
+  // The editor's panel switcher: `Files` is its own tree and `Source` is the
+  // version-control panel registered by ui-git. Their presence is what proves
+  // the panel ring reached the assembled page, which no unit spec can show.
+  'Files', 'Source',
 ]
 
 const MODE = webSnapshotMode()
@@ -111,7 +115,13 @@ describe('conversation view tabs', () => {
       // has to be re-recorded per machine, so the assertion is which controls
       // the panel offers, drawn from a closed vocabulary.
       const view = page.locator('[data-slot="conversation.view"]').first()
-      const labels = await view.getByRole('button').allInnerTexts()
+      // Tabs as well as buttons: the editor's panel switcher is a tablist, and
+      // whether the version-control panel reached the ring is exactly what
+      // this golden exists to pin.
+      const labels = [
+        ...await view.getByRole('button').allInnerTexts(),
+        ...await view.getByRole('tab').allInnerTexts(),
+      ]
       const offered = KNOWN_CONTROLS.filter(control => labels.some(
         label => label.trim().toLowerCase() === control.toLowerCase(),
       ))

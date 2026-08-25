@@ -5,6 +5,11 @@ import { RpcId } from '../src/api/rpc.ts'
 import { toFetchHandler } from '../src/fetch/handler.ts'
 import { AbstractApiClient, InProcessApiClient } from '../src/fetch/client.ts'
 
+/** A clean working tree, the status this fake answers for every git.* row. */
+function cleanTree(root: string) {
+  return { root, ahead: 0, behind: 0, changes: [], truncated: false }
+}
+
 /** Minimal in-memory ApiProxy: echoes rpcIds, scripts one frame per stream. */
 function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFrame[]; crashOn: string }> = {}): ApiProxy {
   const muxFrames = overrides.muxFrames ?? [{ type: 'session/subscribed', sessionId: 's1' as never, lastSeq: -1 }]
@@ -235,6 +240,56 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
       },
       async writeFile(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path, version: 'v2' } } }
+      },
+    },
+    git: {
+      async listRepositories(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { repositories: [], truncated: false } } }
+      },
+      async status(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: cleanTree(request.payload.root) } }
+      },
+      async worktrees(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { worktrees: [] } } }
+      },
+      async compareBases(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { comparisons: [] } } }
+      },
+      async graph(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { commits: [], branches: [], truncated: false } } }
+      },
+      async diff(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path, oldText: '', newText: '', binary: false } } }
+      },
+      async log(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { commits: [] } } }
+      },
+      async stage(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: cleanTree(request.payload.root) } }
+      },
+      async unstage(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: cleanTree(request.payload.root) } }
+      },
+      async discard(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { status: cleanTree(request.payload.root) } } }
+      },
+      async recover(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { content: '' } } }
+      },
+      async commit(request) {
+        return {
+          rpcId: request.rpcId,
+          result: {
+            ok: true,
+            value: {
+              commit: {
+                id: 'c0ffee', subject: request.payload.message, authorName: 'T',
+                authorEmail: 't@example.com', authoredAt: '0', parents: [],
+              },
+              status: cleanTree(request.payload.root),
+            },
+          },
+        }
       },
     },
     docker: {

@@ -505,6 +505,15 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Container inspection, image listing, log reads, and Compose lifecycle share one ctx.docker seam; tool-docker owns the stable model-facing names.',
   },
   {
+    key: 'git',
+    pkg: 'git',
+    title: 'Git access provider registry',
+    mode: 'seam',
+    implementations: ['git-local'],
+    consumers: ['tool-git'],
+    note: 'Repository discovery, status, diffs, history, worktrees, base comparison, and index/worktree mutation share one ctx.git seam; tool-git owns the stable model-facing names, and the browser panel reads the same seam through the git.* RPC domain.',
+  },
+  {
     key: 'web',
     pkg: 'web',
     title: 'Web access provider registry',

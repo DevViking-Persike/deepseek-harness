@@ -62,6 +62,10 @@ function mount() {
     }),
     readFile: () => Promise.resolve({ path: '/w/f0.ts', content: '', version: 'v1' }),
     languageServers: () => Promise.resolve([]),
+    // No panel is registered in these specs: the ring is empty, so the tab
+    // shows its own file tree and draws no switcher.
+    panels: { list: () => [], subscribe: () => () => {}, version: () => 0 },
+    renderSlot: () => null,
     writeFile: () => Promise.resolve('v2'),
     t: makeTranslate(zh),
   } as unknown as EditorViewProps

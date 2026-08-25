@@ -12,3 +12,5 @@ Shell
 
 Save
 Languages
+Files
+Source

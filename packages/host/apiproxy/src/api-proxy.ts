@@ -4,9 +4,9 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { mkdir, opendir, stat } from 'node:fs/promises'
+import { mkdir, opendir, realpath, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, join, sep } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
@@ -88,6 +88,11 @@ import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 // onto one wire code; the import also resolves `ctx.get('docker')`.
 import { DockerError } from '@deepseek-ai/dsh-docker'
 import type { DockerContainer, DockerImage } from '@deepseek-ai/dsh-docker'
+// Value edge: the git domain narrows the seam's provider-selection and
+// repository failures onto its own wire codes; the import also resolves
+// `ctx.get('git')`.
+import { GitError } from '@deepseek-ai/dsh-git'
+import type { GitStatus } from '@deepseek-ai/dsh-git'
 // The settings/credentials seams: brand guards run at this wire boundary; the
 // service reads stay optional (`ctx.get`) so a composition without either
 // provider still serves every other domain.
@@ -106,6 +111,7 @@ import { approvalResponsePayloadSchema } from './api/approvals.schema.ts'
 import { imageLimitsProjectionSchema, sessionListMetadataProjectionSchema } from './api/sessions.schema.ts'
 import { questionResponsePayloadSchema } from './api/questions.schema.ts'
 import type { ClientResponse, RpcError, RpcReceipt, RpcRequest, RpcResponse } from './api/rpc.ts'
+import type { ResponseValue } from './api/rpc-map.ts'
 import { RpcId } from './api/rpc.ts'
 import type {
   AskUserQuestionAnswer, AskUserQuestionItem, AskUserQuestionRequest,
@@ -147,6 +153,32 @@ export const DEFAULT_DOCKER_LOG_MAX_CHARS = 40_000
 
 /** Default cap on characters one Compose lifecycle response carries. */
 export const DEFAULT_DOCKER_COMPOSE_OUTPUT_MAX_CHARS = 40_000
+
+/**
+ * Directory levels the repository scan descends below each workspace root. A
+ * monorepo keeps its inner repositories within a few levels of its root, and
+ * every extra level multiplies the directories walked.
+ */
+export const GIT_DISCOVERY_MAX_DEPTH = 4
+
+/** Largest number of repositories one discovery answers before truncating. */
+export const GIT_DISCOVERY_LIMIT = 100
+
+/** Commits one `git.log` response carries when the client names no limit. */
+export const GIT_LOG_DEFAULT_LIMIT = 50
+
+/**
+ * Integration branches a checkout is compared against when the client names
+ * none. Both spellings of each are asked for: a repository may track its base
+ * locally, on the remote, or only one of the two, and a name that does not
+ * resolve is reported as absent rather than failing the call.
+ */
+export const GIT_DEFAULT_BASES: readonly string[] = [
+  'main', 'origin/main', 'master', 'origin/master', 'develop', 'origin/develop',
+]
+
+/** Commits one `git.graph` response carries when the client names no limit. */
+export const GIT_GRAPH_DEFAULT_LIMIT = 120
 
 /** Default cap on rows one `docker.browseCompose` level returns. */
 export const DEFAULT_DOCKER_COMPOSE_BROWSE_MAX_ENTRIES = 500
@@ -1159,6 +1191,110 @@ function dockerImageEntry(image: DockerImage): DockerImageEntry {
  */
 export function isComposeFileName(name: string): boolean {
   return COMPOSE_FILE_PATTERN.test(name)
+}
+
+/** The wire refusal every git.* row answers when no composition mounts a Git seam. */
+function gitAbsent(): RpcError {
+  return {
+    code: 'git-unavailable',
+    message: 'git seam is absent: this composition mounts no @deepseek-ai/dsh-git provider in its plugin set',
+    details: {},
+  }
+}
+
+/**
+ * Map one Git seam failure onto the domain's wire vocabulary. Provider
+ * selection failures all become `git-unavailable` because they are one empty
+ * state for a client; repository-level failures stay distinct, since each is a
+ * state the tab renders differently.
+ */
+function gitError(error: unknown): RpcError {
+  if (error instanceof GitError) {
+    const { code } = error
+    if (code.startsWith('GIT_PROVIDER_')) {
+      return { code: 'git-unavailable', message: error.message, details: {} }
+    }
+    if (code === 'GIT_OUTSIDE_REPOSITORY' || code === 'GIT_INVALID_REQUEST') {
+      return { code: 'git-denied', message: error.message, details: {} }
+    }
+    if (code === 'GIT_NOT_A_REPOSITORY' || code === 'GIT_NOT_FOUND') {
+      return { code: 'git-not-found', message: error.message, details: {} }
+    }
+    if (code === 'GIT_CONFLICTED') {
+      return { code: 'git-conflicted', message: error.message, details: {} }
+    }
+    if (code === 'GIT_NOTHING_STAGED') {
+      return { code: 'git-nothing-staged', message: error.message, details: {} }
+    }
+    return { code: 'git-failed', message: error.message, details: {} }
+  }
+  if (error instanceof GitOutsideWorkspace) {
+    return { code: 'git-denied', message: error.message, details: {} }
+  }
+  return { code: 'internal', message: error instanceof Error ? error.message : String(error), details: {} }
+}
+
+/**
+ * A repository that lies outside every registered workspace. The fence runs
+ * before every git.* operation including reads, so a wire value can never
+ * address an arbitrary repository on the machine.
+ */
+export class GitOutsideWorkspace extends Error {
+  constructor(root: string) {
+    super(`"${root}" is not inside a registered workspace`)
+    this.name = 'GitOutsideWorkspace'
+  }
+}
+
+/**
+ * Prove a client-supplied repository root lies inside a registered workspace,
+ * and answer its canonical form. Containment is decided on the realpath of
+ * both sides, so a symlink cannot present an outside repository as an inside
+ * one.
+ *
+ * @param ctx - host context carrying the workspace registry.
+ * @param root - the client-supplied repository root.
+ * @returns the canonical repository root.
+ * @throws {GitOutsideWorkspace} when no registered workspace contains it.
+ */
+async function gitRoot(ctx: Context, root: string): Promise<string> {
+  let canonical: string
+  try {
+    canonical = await realpath(root)
+  } catch {
+    // An unresolvable path cannot be proven to be inside a workspace, which is
+    // the same refusal as one that provably is not.
+    throw new GitOutsideWorkspace(root)
+  }
+  for (const workspace of ctx.workspaceRegistry.list()) {
+    const base = workspace.path.endsWith(sep) ? workspace.path : workspace.path + sep
+    if (canonical === workspace.path || canonical.startsWith(base)) return canonical
+  }
+  throw new GitOutsideWorkspace(root)
+}
+
+/** Project one seam status onto its wire view. */
+function gitStatusView(status: GitStatus): ResponseValue<'git.status'> {
+  return {
+    root: status.root,
+    ...status.branch === undefined ? {} : { branch: status.branch },
+    ...status.head === undefined ? {} : { head: status.head },
+    ...status.upstream === undefined ? {} : { upstream: status.upstream },
+    ahead: status.ahead,
+    behind: status.behind,
+    changes: status.changes.map(change => ({
+      path: change.path,
+      absolutePath: change.absolutePath,
+      index: change.index,
+      worktree: change.worktree,
+      ...change.origPath === undefined ? {} : { origPath: change.origPath },
+      ...change.similarity === undefined ? {} : { similarity: change.similarity },
+      binary: change.binary,
+      ...change.insertions === undefined ? {} : { insertions: change.insertions },
+      ...change.deletions === undefined ? {} : { deletions: change.deletions },
+    })),
+    truncated: status.truncated,
+  }
 }
 
 /** The wire refusal every editor.* row answers when no composition mounts a filesystem seam. */
@@ -3598,6 +3734,240 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           return ok(request, { path: target.displayPath, version: String(outcome.version) })
         } catch (error: unknown) {
           return err(request, editorError(error))
+        }
+      },
+    },
+
+    git: {
+      // Every row resolves the repository inside a registered workspace first,
+      // so a wire value can never address an arbitrary repository, and reaches
+      // the seam through `ctx.get('git')` rather than an inject entry — the
+      // gateway must not wait on a Git provider to serve its other domains.
+      //
+      // The mutations here (stage, unstage, discard, commit) are gestures an
+      // operator makes on the working tree they are looking at, the same
+      // standing as `editor.writeFile`. Operations that rewrite shared history
+      // or reach a remote stay out of this domain and go through the agent's
+      // tools, where the session log records them.
+
+      async listRepositories(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        try {
+          const workspaces = ctx.workspaceRegistry.list()
+          const titles = new Map(workspaces.map(workspace => [workspace.path, workspace.title]))
+          const found = await git.discover({
+            roots: workspaces.map(workspace => workspace.path),
+            maxDepth: GIT_DISCOVERY_MAX_DEPTH,
+            limit: GIT_DISCOVERY_LIMIT,
+          }, signal)
+          return ok(request, {
+            repositories: found.repositories.map(repository => ({
+              root: repository.root,
+              name: repository.name,
+              workspacePath: repository.workspacePath,
+              workspaceTitle: titles.get(repository.workspacePath) ?? repository.name,
+              submodule: repository.submodule,
+            })),
+            truncated: found.truncated,
+          })
+        } catch (error: unknown) {
+          return err(request, gitError(error))
+        }
+      },
+
+      async status(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        try {
+          const root = await gitRoot(ctx, request.payload.root)
+          return ok(request, gitStatusView(await git.status(root, signal)))
+        } catch (error: unknown) {
+          return err(request, gitError(error))
+        }
+      },
+
+      async worktrees(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        try {
+          const root = await gitRoot(ctx, request.payload.root)
+          const found = await git.worktrees(root, signal)
+          // Each checkout's change count rides along, so this one call answers
+          // what is in every worktree rather than forcing a request per row.
+          const counted = await Promise.all(found.map(async (worktree) => {
+            // A bare repository has no working tree, and a prunable checkout
+            // has already lost its directory; neither has changes to count.
+            if (worktree.bare || worktree.prunable !== undefined) return worktree
+            try {
+              const status = await git.status(worktree.path, signal)
+              return { ...worktree, changes: status.changes.length }
+            } catch {
+              // Unreadable checkout: the row still belongs in the list, and an
+              // absent count is the honest answer rather than a failed listing.
+              return worktree
+            }
+          }))
+          return ok(request, {
+            worktrees: counted.map(worktree => ({
+              path: worktree.path,
+              name: worktree.name,
+              ...worktree.branch === undefined ? {} : { branch: worktree.branch },
+              ...worktree.head === undefined ? {} : { head: worktree.head },
+              main: worktree.main,
+              detached: worktree.detached,
+              bare: worktree.bare,
+              ...worktree.locked === undefined ? {} : { locked: worktree.locked },
+              ...worktree.prunable === undefined ? {} : { prunable: worktree.prunable },
+              ...'changes' in worktree ? { changes: worktree.changes } : {},
+            })),
+          })
+        } catch (error: unknown) {
+          return err(request, gitError(error))
+        }
+      },
+
+      async compareBases(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        const { bases } = request.payload
+        try {
+          const root = await gitRoot(ctx, request.payload.root)
+          const comparisons = await git.compareBases({
+            root,
+            bases: bases ?? GIT_DEFAULT_BASES,
+          }, signal)
+          // Bases that do not exist here are dropped rather than shown as
+          // empty rows: a repository with `main` should not be told about
+          // `develop` it never had.
+          return ok(request, { comparisons: comparisons.filter(entry => entry.exists) })
+        } catch (error: unknown) {
+          return err(request, gitError(error))
+        }
+      },
+
+      async graph(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        const { limit } = request.payload
+        try {
+          const root = await gitRoot(ctx, request.payload.root)
+          const graph = await git.graph({
+            root,
+            limit: limit ?? GIT_GRAPH_DEFAULT_LIMIT,
+          }, signal)
+          return ok(request, {
+            commits: graph.commits,
+            branches: graph.branches,
+            truncated: graph.truncated,
+          })
+        } catch (error: unknown) {
+          return err(request, gitError(error))
+        }
+      },
+
+      async diff(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        const { path, side } = request.payload
+        try {
+          const root = await gitRoot(ctx, request.payload.root)
+          return ok(request, await git.diff({ root, path, side }, signal))
+        } catch (error: unknown) {
+          return err(request, gitError(error))
+        }
+      },
+
+      async log(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        const { limit, path } = request.payload
+        try {
+          const root = await gitRoot(ctx, request.payload.root)
+          const commits = await git.log({
+            root,
+            limit: limit ?? GIT_LOG_DEFAULT_LIMIT,
+            ...path === undefined ? {} : { path },
+          }, signal)
+          return ok(request, { commits })
+        } catch (error: unknown) {
+          return err(request, gitError(error))
+        }
+      },
+
+      async stage(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        const { paths } = request.payload
+        try {
+          const root = await gitRoot(ctx, request.payload.root)
+          await git.stage({ root, paths }, signal)
+          // The settled status rides back on the mutation: the client would
+          // request it immediately anyway, and deriving it here keeps the
+          // panel from rendering a state the repository already left.
+          return ok(request, gitStatusView(await git.status(root, signal)))
+        } catch (error: unknown) {
+          return err(request, gitError(error))
+        }
+      },
+
+      async unstage(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        const { paths } = request.payload
+        try {
+          const root = await gitRoot(ctx, request.payload.root)
+          await git.unstage({ root, paths }, signal)
+          return ok(request, gitStatusView(await git.status(root, signal)))
+        } catch (error: unknown) {
+          return err(request, gitError(error))
+        }
+      },
+
+      async discard(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        const { path, side } = request.payload
+        try {
+          const root = await gitRoot(ctx, request.payload.root)
+          // The seam preserves the replaced content before restoring, and
+          // `recoveredOid` is the handle that makes this discard undoable —
+          // the reason a destructive gesture is allowed on this domain at all.
+          const outcome = await git.discard({ root, path, side }, signal)
+          return ok(request, {
+            status: gitStatusView(await git.status(root, signal)),
+            ...outcome.recoveredOid === undefined ? {} : { recoveredOid: outcome.recoveredOid },
+          })
+        } catch (error: unknown) {
+          return err(request, gitError(error))
+        }
+      },
+
+      async recover(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        const { oid } = request.payload
+        try {
+          const root = await gitRoot(ctx, request.payload.root)
+          return ok(request, { content: await git.readBlob(root, oid, signal) })
+        } catch (error: unknown) {
+          return err(request, gitError(error))
+        }
+      },
+
+      async commit(request, signal) {
+        const git = ctx.get('git')
+        if (git === undefined) return err(request, gitAbsent())
+        const { message } = request.payload
+        try {
+          const root = await gitRoot(ctx, request.payload.root)
+          const commit = await git.commit({ root, message }, signal)
+          return ok(request, {
+            commit,
+            status: gitStatusView(await git.status(root, signal)),
+          })
+        } catch (error: unknown) {
+          return err(request, gitError(error))
         }
       },
     },

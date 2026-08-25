@@ -47,7 +47,8 @@ import {
 import {
   gitCommitValueSchema, gitDiffValueSchema, gitDiscardValueSchema,
   gitListRepositoriesValueSchema, gitLogValueSchema, gitRecoverValueSchema,
-  gitStatusValueSchema,
+  gitStatusValueSchema, gitWorktreesValueSchema,
+  gitCompareBasesValueSchema, gitGraphValueSchema,
 } from '../api/git.schema.ts'
 import {
   dockerBrowseComposeValueSchema, dockerComposeDownValueSchema, dockerComposeUpValueSchema,
@@ -141,6 +142,9 @@ export interface IApiClient {
   git: {
     listRepositories(payload: RequestPayload<'git.listRepositories'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.listRepositories'>>>
     status(payload: RequestPayload<'git.status'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.status'>>>
+    worktrees(payload: RequestPayload<'git.worktrees'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.worktrees'>>>
+    compareBases(payload: RequestPayload<'git.compareBases'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.compareBases'>>>
+    graph(payload: RequestPayload<'git.graph'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.graph'>>>
     diff(payload: RequestPayload<'git.diff'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.diff'>>>
     log(payload: RequestPayload<'git.log'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.log'>>>
     stage(payload: RequestPayload<'git.stage'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'git.stage'>>>
@@ -248,6 +252,9 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'editor.writeFile': editorWriteFileValueSchema,
   'git.listRepositories': gitListRepositoriesValueSchema,
   'git.status': gitStatusValueSchema,
+  'git.worktrees': gitWorktreesValueSchema,
+  'git.compareBases': gitCompareBasesValueSchema,
+  'git.graph': gitGraphValueSchema,
   'git.diff': gitDiffValueSchema,
   'git.log': gitLogValueSchema,
   'git.stage': gitStatusValueSchema,
@@ -526,6 +533,9 @@ export abstract class AbstractApiClient implements IApiClient {
   readonly git: IApiClient['git'] = {
     listRepositories: (payload, signal) => this.callUnary('git.listRepositories', payload, signal),
     status: (payload, signal) => this.callUnary('git.status', payload, signal),
+    worktrees: (payload, signal) => this.callUnary('git.worktrees', payload, signal),
+    compareBases: (payload, signal) => this.callUnary('git.compareBases', payload, signal),
+    graph: (payload, signal) => this.callUnary('git.graph', payload, signal),
     diff: (payload, signal) => this.callUnary('git.diff', payload, signal),
     log: (payload, signal) => this.callUnary('git.log', payload, signal),
     stage: (payload, signal) => this.callUnary('git.stage', payload, signal),
