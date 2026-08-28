@@ -81,9 +81,13 @@ async function bench() {
   // block follows this, never catalog membership.
   let routable = true
   const blocks = new Map<SessionId, { reason: string } | undefined>()
+  const imageSupport = new Map<SessionId, boolean | undefined>()
   ctx.provide('conversation', {
     blocks: {
       set: (id: SessionId, block: { reason: string } | undefined) => { blocks.set(id, block) },
+    },
+    imageSupport: {
+      set: (id: SessionId, value: boolean | undefined) => { imageSupport.set(id, value) },
     },
   })
   let contribution: CommandContribution | undefined

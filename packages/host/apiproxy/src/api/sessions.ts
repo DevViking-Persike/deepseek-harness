@@ -126,6 +126,12 @@ export interface ModelCatalogModel {
   description?: string
   /** Exact-route reasoning metadata when the adapter exposes it. */
   reasoning?: ModelReasoning
+  /**
+   * Input modalities the adapter declared for this model (`text`, `image`, …),
+   * when it declared any. Absence means unknown, never text-only: a catalog
+   * consumer must treat it as "cannot say" and fall back to its own gating.
+   */
+  inputModalities?: string[]
 }
 
 /** One provider and the models it advertised successfully. */

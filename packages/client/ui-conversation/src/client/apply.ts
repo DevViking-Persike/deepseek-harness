@@ -21,6 +21,7 @@ import { createChatStore } from './stores.ts'
 import { ConversationController, UnsupportedImageMediaTypeError } from './service.ts'
 import type { IConversation } from './service.ts'
 import { ComposerBlockRegistry } from './input/blocks.ts'
+import { ImageSupportRegistry } from './input/image-support.ts'
 import type { ComposerBlock } from './input/blocks.ts'
 import { InputHub } from './input/hub.ts'
 import { ComposerSubmissionPolicy } from './input/submission-policy.ts'
@@ -174,6 +175,7 @@ export function apply(ctx: Context): void {
   // here, and the bar reads its own session's store. It cannot flow the other
   // way: this package must not import the plugins that would know.
   const composerBlocks = new ComposerBlockRegistry()
+  const imageSupport = new ImageSupportRegistry()
 
   // The input machine feeds every session-scope slot
   // component through the standard provide channel — the 'input' hook plus
@@ -307,6 +309,12 @@ export function apply(ctx: Context): void {
       return {
         keyboard: shell,
         addImages: (files) => {
+          // A definitive `false` from the model knower refuses the image at
+          // attach time; `undefined` cannot say and must not gate, or a slow
+          // or unreachable directory would lock a working attach path.
+          if (conversation.imageSupport.storeFor(sessionId).getSnapshot() === false) {
+            return t('image.modelUnsupported')
+          }
           try {
             const images = conversation.createDraftImages(files)
             if (!shell.addImages(images.map(image => image.id))) {
@@ -432,7 +440,7 @@ export function apply(ctx: Context): void {
   // registers itself as `conversation` and lives on its own child fiber.
   // Presentation registrants depend directly on their slot declarations;
   // this service remains only where conversation actions are required.
-  ctx.plugin(ConversationController, { input: inputHub, blocks: composerBlocks })
+  ctx.plugin(ConversationController, { input: inputHub, blocks: composerBlocks, imageSupport })
 
   // The plan strip rides the input dock above the queue rows (same posture).
   ctx.plugin(todoDockEntry)

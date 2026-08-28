@@ -17,6 +17,27 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { ConnectionHandle, SessionId } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionRuntime } from '@deepseek-ai/dsh-client-runtime/client'
 import { ModelDirectory } from './directory.ts'
+import type { ModelDirectoryState } from './directory.ts'
+
+/**
+ * Whether the snapshot's current model declares image input.
+ *
+ * Tri-state like `routable`: only a catalog entry that declares its
+ * modalities may answer, and a missing entry means "cannot say" — never a
+ * refusal, or an unreachable directory would lock a working attach path.
+ *
+ * @param snapshot - the directory state to read.
+ * @returns `true` accepts, `false` refuses, `undefined` cannot say.
+ */
+export function imageSupportOf(snapshot: ModelDirectoryState): boolean | undefined {
+  const current = snapshot.current
+  if (current === null) return undefined
+  const entry = snapshot.groups
+    .find(group => group.id === current.provider)?.models
+    .find(model => model.id === current.model)
+  if (entry?.inputModalities === undefined) return undefined
+  return entry.inputModalities.includes('image')
+}
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -88,9 +109,14 @@ export class ModelDirectoryResolver extends Service {
     const conversation = this.ctx.get('conversation')
     if (conversation !== undefined) {
       const publish = (): void => {
-        conversation.blocks.set(sessionId, directory.store.getSnapshot().routable === false
+        const snapshot = directory.store.getSnapshot()
+        conversation.blocks.set(sessionId, snapshot.routable === false
           ? { reason: this.blockReason() }
           : undefined)
+        // Image capability rides the same push with the same tri-state rule:
+        // only a definite `false` (an entry that declares modalities without
+        // image) refuses the attach; `undefined` cannot say and never gates.
+        conversation.imageSupport.set(sessionId, imageSupportOf(snapshot))
       }
       publish()
       actx.effect(() => {
@@ -98,6 +124,7 @@ export class ModelDirectoryResolver extends Service {
         return () => {
           stop()
           conversation.blocks.set(sessionId, undefined)
+          conversation.imageSupport.set(sessionId, undefined)
         }
       }, 'ui-model-selection: composer block')
     }

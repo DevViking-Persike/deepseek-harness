@@ -173,6 +173,9 @@ export const modelCatalogModelSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   reasoning: modelReasoningSchema.optional(),
+  // Open vocabulary by contract: the modality map is merge-extensible, so the
+  // wire carries whatever the adapter declared rather than a fixed enum.
+  inputModalities: z.array(z.string().min(1)).optional(),
 }) satisfies z.ZodType<Wire<ModelCatalogModel>>
 
 /** One successfully loaded provider group. */
