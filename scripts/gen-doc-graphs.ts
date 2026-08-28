@@ -514,6 +514,15 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Repository discovery, status, diffs, history, worktrees, base comparison, and index/worktree mutation share one ctx.git seam; tool-git owns the stable model-facing names, and the browser panel reads the same seam through the git.* RPC domain.',
   },
   {
+    key: 'repositories',
+    pkg: 'repository',
+    title: 'Repository catalog and forge registry',
+    mode: 'seam',
+    implementations: ['repository-local'],
+    companions: ['repository-github', 'repository-gitlab'],
+    note: 'Catalog list/get/add/remove/scan resolve through one selected ctx.repositories backend (repository-local persists the catalog and reads git facts through ctx.git); the forge subplugins register GitHub/GitLab identity, capabilities, and connection status into the same seam.',
+  },
+  {
     key: 'web',
     pkg: 'web',
     title: 'Web access provider registry',

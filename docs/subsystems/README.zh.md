@@ -42,6 +42,7 @@
 | [web.md](web.md) | Web 访问 seam：`WebSearchRequest`/`Result`、`WebFetchRequest`/`Result`、`WebFetchBody`、提供方可用性、`WebError` |
 | [docker.md](docker.md) | Docker 访问 seam：`DockerContainer`/`State`、`DockerImage`、`DockerLogsRequest`/`Result`、`DockerComposeRequest`/`Result`、逐次调用的提供方可用性、`DockerError` |
 | [git.md](git.md) | Git 访问 seam：携带索引两侧的 `GitFileChange`、`GitWorktree`、`GitBaseComparison`、`GitGraph`、`GitDiscardResult`、逐次调用的提供方可用性、`GitError` |
+| [repository.md](repository.md) | 仓库目录 seam：`Repository` 记录与 `RepositoryFilter`、添加/扫描请求、`RepositoryChangeEvent`、forge 注册（`ForgeProvider`、`ForgeCapabilities`、`ForgeStatus`）、`RepositoryCatalogProvider`、逐操作的提供方选择、`RepositoryError` |
 | [spill.md](spill.md) | spill 存储 seam：`SaveTextSpill`、`SpillOwner`/`SpillSource`、`SpillRef`、品牌类型 `SpillLocator` |
 | [workflow.md](workflow.md) | 工作流 seam：`WorkflowStartRequest`、`WorkflowMeta`、`WorkflowRun`/`Result`、`workflow/*` 事件载荷、`WorkflowError` 致命性 |
 | [jobs.md](jobs.md) | 后台任务运行时：品牌化 `JobId`、producer 约定、消费方视图和 `ctx.jobs` 服务行为 |

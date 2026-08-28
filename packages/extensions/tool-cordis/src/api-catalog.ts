@@ -1232,6 +1232,85 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'repositories',
+    summary: 'The Repositories service registered as `ctx.repositories`.',
+    description: 'The Repositories service registered as `ctx.repositories`. Coordinates repository catalog backends and forge provider subplugins.',
+    methods: [
+      {
+        signature: 'registerForge(forge: ForgeProvider): () => void',
+        description: 'Register a code forge provider (e.g. GitHub, GitLab).',
+        parameters: [{ name: 'forge', description: 'The forge provider to register.' }],
+        returns: 'A synchronous disposer that unregisters the forge.',
+      },
+      {
+        signature: 'registerCatalogProvider(provider: RepositoryCatalogProvider): () => void',
+        description: 'Register a repository catalog provider.',
+        parameters: [{ name: 'provider', description: 'The catalog backend to register.' }],
+        returns: 'A synchronous disposer that unregisters the catalog provider.',
+      },
+      {
+        signature: 'listForges(): readonly ForgeProvider[]',
+        description: 'List all registered forge providers.',
+        parameters: [],
+        returns: 'Array of registered forge providers.',
+      },
+      {
+        signature: 'getForge(id: ForgeId | string): ForgeProvider | undefined',
+        description: 'Get a registered forge provider by its identifier.',
+        parameters: [{ name: 'id', description: 'The forge identifier.' }],
+        returns: 'The matching forge provider or undefined if not registered.',
+      },
+      {
+        signature: 'listProviders(): { readonly catalogProviders: readonly string[]; readonly forges: readonly string[] }',
+        description: 'List identifiers of all registered catalog providers and forge providers.',
+        parameters: [],
+        returns: 'Object containing arrays of catalog provider ids and forge ids.',
+      },
+      {
+        signature: 'subscribe(listener: RepositoriesChangedListener): () => void',
+        description: 'Subscribe to repository change notifications.',
+        parameters: [{ name: 'listener', description: 'Callback invoked when a repository is added, removed, or updated.' }],
+        returns: 'Disposer function to cancel the subscription.',
+      },
+      {
+        signature: 'async list(filter?: RepositoryFilter, signal?: AbortSignal): Promise<readonly Repository[]>',
+        description: 'List repositories from the catalog matching optional filter criteria.',
+        parameters: [{ name: 'filter', description: 'Optional repository filter.' }, { name: 'signal', description: 'Optional cancellation signal.' }],
+        returns: 'List of matching repositories.',
+      },
+      {
+        signature: 'async get(id: RepositoryId, signal?: AbortSignal): Promise<Repository | undefined>',
+        description: 'Get a repository by its identifier.',
+        parameters: [{ name: 'id', description: 'The repository identifier.' }, { name: 'signal', description: 'Optional cancellation signal.' }],
+        returns: 'The repository or undefined if not found.',
+      },
+      {
+        signature: 'async getByPath(path: string, signal?: AbortSignal): Promise<Repository | undefined>',
+        description: 'Get a repository by its filesystem path.',
+        parameters: [{ name: 'path', description: 'Filesystem path to lookup.' }, { name: 'signal', description: 'Optional cancellation signal.' }],
+        returns: 'The repository or undefined if not found.',
+      },
+      {
+        signature: 'async add(request: RepositoryAddRequest, signal?: AbortSignal): Promise<Repository>',
+        description: 'Add a repository to the catalog.',
+        parameters: [{ name: 'request', description: 'Repository creation request.' }, { name: 'signal', description: 'Optional cancellation signal.' }],
+        returns: 'The added repository.',
+      },
+      {
+        signature: 'async remove(id: RepositoryId, signal?: AbortSignal): Promise<boolean>',
+        description: 'Remove a repository from the catalog by its identifier.',
+        parameters: [{ name: 'id', description: 'The repository identifier.' }, { name: 'signal', description: 'Optional cancellation signal.' }],
+        returns: 'True if removed, false if not found.',
+      },
+      {
+        signature: 'async scan(request: RepositoryScanRequest, signal?: AbortSignal): Promise<RepositoryScanResult>',
+        description: 'Scan filesystem roots for repositories and register discovered items.',
+        parameters: [{ name: 'request', description: 'Scan constraints and roots.' }, { name: 'signal', description: 'Optional cancellation signal.' }],
+        returns: 'Scan summary with added and existing repositories.',
+      },
+    ],
+  },
+  {
     key: 'sandbox',
     summary: 'Abstract process-sandbox service.',
     description: 'Abstract process-sandbox service. confine must return enforcing argv or fail closed at wrap or runner-execution time; silent unconfined passthrough is forbidden. Functional probes arbitrate multi-runner chains and may be skipped for a sole candidate, whose own refusal remains the fail-closed end.',
@@ -2679,6 +2758,30 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'options', description: 'the full request. A LOOP-built request carries the process-local {@link markAgentLoopRequest} identity and arrives deep-frozen (mutation throws): its content is a pure function of the session log (the reconstructability Agent Note), so listeners read it, never rewrite it. Hand-built calls do not carry that marker; their messages already obey the immutable creation contract.' }],
   },
   {
+    name: 'repositories/changed',
+    mode: 'emit',
+    signature: '\'repositories/changed\'(event: RepositoryChangeEvent): void',
+    summary: 'A repository in the catalog was added, updated, or removed.',
+    description: 'A repository in the catalog was added, updated, or removed.',
+    parameters: [{ name: 'event', description: 'change details and affected repository.' }],
+  },
+  {
+    name: 'repositories/forge-registered',
+    mode: 'emit',
+    signature: '\'repositories/forge-registered\'(forge: ForgeProvider): void',
+    summary: 'A forge provider was registered.',
+    description: 'A forge provider was registered.',
+    parameters: [{ name: 'forge', description: 'registered forge provider.' }],
+  },
+  {
+    name: 'repositories/forge-unregistered',
+    mode: 'emit',
+    signature: '\'repositories/forge-unregistered\'(forgeId: ForgeId): void',
+    summary: 'A forge provider was unregistered.',
+    description: 'A forge provider was unregistered.',
+    parameters: [{ name: 'forgeId', description: 'identifier of the unregistered forge.' }],
+  },
+  {
     name: 'session-telemetry/record',
     mode: 'waterfall',
     signature: '\'session-telemetry/record\'(record: SessionTelemetryRecord, next: () => SessionTelemetryRecord): SessionTelemetryRecord',
@@ -3017,6 +3120,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'CancelOptions',
     declaration: 'export interface CancelOptions {\n    keepInbox?: boolean | undefined;\n}',
+  },
+  {
+    name: 'CatalogProviderId',
+    declaration: 'export type CatalogProviderId = Branded<\'CatalogProviderId\'>;',
   },
   {
     name: 'ClientResponse',
@@ -3389,6 +3496,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'FinishReasonMap',
     declaration: 'export interface FinishReasonMap {\n    \'stop\': {\n        kind: \'stop\';\n    };\n    \'tool-calls\': {\n        kind: \'tool-calls\';\n    };\n    \'max-tokens\': {\n        kind: \'max-tokens\';\n    };\n    \'aborted\': {\n        kind: \'aborted\';\n        failure: LlmFailure;\n    };\n    \'error\': {\n        kind: \'error\';\n        failure: LlmFailure;\n    };\n}',
+  },
+  {
+    name: 'ForgeCapabilities',
+    declaration: 'export interface ForgeCapabilities {\n    readonly pullRequests: boolean;\n    readonly issues: boolean;\n    readonly forks: boolean;\n    readonly branches: boolean;\n    readonly codeSearch: boolean;\n    readonly webhooks: boolean;\n}',
+  },
+  {
+    name: 'ForgeId',
+    declaration: 'export type ForgeId = Branded<\'ForgeId\'>;',
+  },
+  {
+    name: 'ForgeProvider',
+    declaration: 'export interface ForgeProvider {\n    readonly id: ForgeId;\n    readonly displayName: string;\n    readonly domain: string;\n    capabilities(): ForgeCapabilities | Promise<ForgeCapabilities>;\n    status(signal?: AbortSignal): Promise<ForgeStatus>;\n}',
+  },
+  {
+    name: 'ForgeState',
+    declaration: 'export type ForgeState = \'unconfigured\' | \'configured\' | \'ready\' | \'error\';',
+  },
+  {
+    name: 'ForgeStatus',
+    declaration: 'export interface ForgeStatus {\n    readonly state: ForgeState;\n    readonly authenticated: boolean;\n    readonly username?: string | undefined;\n    readonly detail?: string | undefined;\n}',
   },
   {
     name: 'FsDirEntry',
@@ -4017,6 +4144,50 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ReplayEnvelope',
     declaration: 'export interface ReplayEnvelope {\n    response: unknown;\n    blocks?: readonly unknown[];\n}',
+  },
+  {
+    name: 'RepositoriesChangedListener',
+    declaration: 'export type RepositoriesChangedListener = (event: RepositoryChangeEvent) => void;',
+  },
+  {
+    name: 'Repository',
+    declaration: 'export interface Repository {\n    readonly id: RepositoryId;\n    readonly name: string;\n    readonly path: string;\n    readonly remotes?: readonly RepositoryRemote[] | undefined;\n    readonly defaultBranch?: string | undefined;\n    readonly currentBranch?: string | undefined;\n    readonly isClean?: boolean | undefined;\n    readonly forge?: RepositoryForgeRef | undefined;\n    readonly createdAt: string;\n    readonly updatedAt: string;\n    readonly metadata?: Readonly<Record<string, unknown>> | undefined;\n}',
+  },
+  {
+    name: 'RepositoryAddRequest',
+    declaration: 'export interface RepositoryAddRequest {\n    readonly path: string;\n    readonly name?: string | undefined;\n    readonly remotes?: readonly RepositoryRemote[] | undefined;\n    readonly metadata?: Readonly<Record<string, unknown>> | undefined;\n}',
+  },
+  {
+    name: 'RepositoryCatalogProvider',
+    declaration: 'export interface RepositoryCatalogProvider {\n    readonly id: CatalogProviderId;\n    available(): Promise<boolean>;\n    list(filter?: RepositoryFilter, signal?: AbortSignal): Promise<readonly Repository[]>;\n    get(id: RepositoryId, signal?: AbortSignal): Promise<Repository | undefined>;\n    getByPath(path: string, signal?: AbortSignal): Promise<Repository | undefined>;\n    add(request: RepositoryAddRequest, signal?: AbortSignal): Promise<Repository>;\n    remove(id: RepositoryId, signal?: AbortSignal): Promise<boolean>;\n    scan(request: RepositoryScanRequest, signal?: AbortSignal): Promise<RepositoryScanResult>;\n}',
+  },
+  {
+    name: 'RepositoryChangeEvent',
+    declaration: 'export interface RepositoryChangeEvent {\n    readonly kind: \'added\' | \'removed\' | \'updated\';\n    readonly repository: Repository;\n}',
+  },
+  {
+    name: 'RepositoryFilter',
+    declaration: 'export interface RepositoryFilter {\n    readonly pathPrefix?: string | undefined;\n    readonly nameQuery?: string | undefined;\n    readonly forgeId?: ForgeId | undefined;\n}',
+  },
+  {
+    name: 'RepositoryForgeRef',
+    declaration: 'export interface RepositoryForgeRef {\n    readonly forgeId: ForgeId;\n    readonly owner: string;\n    readonly name: string;\n}',
+  },
+  {
+    name: 'RepositoryId',
+    declaration: 'export type RepositoryId = Branded<\'RepositoryId\'>;',
+  },
+  {
+    name: 'RepositoryRemote',
+    declaration: 'export interface RepositoryRemote {\n    readonly name: string;\n    readonly url: string;\n    readonly fetchUrl?: string | undefined;\n    readonly pushUrl?: string | undefined;\n}',
+  },
+  {
+    name: 'RepositoryScanRequest',
+    declaration: 'export interface RepositoryScanRequest {\n    readonly roots: readonly string[];\n    readonly maxDepth?: number | undefined;\n    readonly limit?: number | undefined;\n}',
+  },
+  {
+    name: 'RepositoryScanResult',
+    declaration: 'export interface RepositoryScanResult {\n    readonly added: readonly Repository[];\n    readonly existing: readonly Repository[];\n    readonly errors?: readonly {\n        readonly path: string;\n        readonly error: string;\n    }[] | undefined;\n}',
   },
   {
     name: 'RequestContext',

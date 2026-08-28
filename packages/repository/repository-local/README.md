@@ -1,5 +1,7 @@
 # @deepseek-ai/dsh-repository-local
 
+English | [中文](README.zh.md)
+
 Local repository catalog provider for the repository capability seam (`ctx.repositories`), backed by durable storage domain (`ctx.storageDomain`) and delegating git operations to `ctx.git`.
 
 ## Service contract

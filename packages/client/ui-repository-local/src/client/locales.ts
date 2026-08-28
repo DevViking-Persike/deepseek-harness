@@ -2,8 +2,10 @@
 
 export const NS = 'repository-local'
 
+/** The namespace key union. */
 export type RepositoryLocalKey = keyof typeof zh
 
+/** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'section.local': '本地仓库',
   'header.title': '本地 Git 仓库',
@@ -34,6 +36,7 @@ export const zh = {
   'details.selectHint': '选择左侧仓库以查看详细状态',
 }
 
+/** English dictionary, checked complete against the zh key set. */
 export const en = {
   'section.local': 'Local Repositories',
   'header.title': 'Local Git Repositories',

@@ -1,5 +1,7 @@
 # @deepseek-ai/dsh-repository
 
+English | [中文](README.zh.md)
+
 Repository capability seam (`ctx.repositories`): a provider registry and execution coordinator for repository catalog management and forge subplugin registrations.
 
 ## Service contract

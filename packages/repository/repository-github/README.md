@@ -1,12 +1,14 @@
 # @deepseek-ai/dsh-repository-github
 
+English | [中文](README.zh.md)
+
 Host subplugin registering GitHub code forge identity, capabilities, and offline status on `ctx.repositories`.
 
 ## Service contract
 
 - Injects `repositories` (`ctx.repositories`).
 - Registers a `ForgeProvider` with `id: 'github'` and capabilities (pull requests, issues, forks, branches, code search, webhooks).
-- Reversibly unregisters on plugin disposal via `ctx.effect()`.
+- Reversibly unregisters on plugin disposal: `apply` returns the `registerForge` disposer, which the fiber runs on teardown.
 
 ## Model Experience
 

@@ -177,6 +177,11 @@ flowchart LR
   svc_git["ctx.git<br/>Git access provider registry"]
   pkg_git_local["git-local"]
   pkg_tool_git["tool-git"]
+  pkg_repository["repository"]
+  svc_repositories["ctx.repositories<br/>Repository catalog and forge registry"]
+  pkg_repository_local["repository-local"]
+  pkg_repository_github["repository-github"]
+  pkg_repository_gitlab["repository-gitlab"]
   pkg_web["web"]
   svc_web["ctx.web<br/>Web access provider registry"]
   pkg_web_search_exa["web-search-exa"]
@@ -261,6 +266,8 @@ flowchart LR
   pkg_permission_presets --> svc_permissionPresets
   pkg_plan_mode --> svc_planMode
   pkg_pwsh_local --> svc_shell
+  pkg_repository --> svc_repositories
+  pkg_repository_local --> svc_repositories
   pkg_sandbox --> svc_sandbox
   pkg_sandbox_local --> svc_sandbox
   pkg_sandbox_policy --> svc_sandboxPolicy
@@ -433,6 +440,8 @@ flowchart LR
   svc_workflowEngine --> pkg_tool_workflow
   svc_workspaceRegistry --> pkg_apiproxy
   svc_fs -. event gate .-> pkg_fs_observation_policy
+  svc_repositories -. event gate .-> pkg_repository_github
+  svc_repositories -. event gate .-> pkg_repository_gitlab
 ```
 
 | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
@@ -487,6 +496,7 @@ flowchart LR
 | `ctx.jobs` | `seam` | [`jobs`](../packages/jobs/jobs) | [`jobs-local`](../packages/jobs/jobs-local) | [`tool-bash`](../packages/shell/tool-bash), [`tool-terminal`](../packages/terminal/tool-terminal), [`tool-subagent`](../packages/subagent/tool-subagent), [`tool-jobs`](../packages/jobs/tool-jobs) | - | 生产方（后台 bash、PTY 发送和 subagent 委派）登记正在运行的工作；tool-jobs 是面向模型的控制器，用于读取、列出和终止这些工作；jobs-local 是进程本地注册表。 |
 | `ctx.docker` | `seam` | [`docker`](../packages/docker/docker) | [`docker-local`](../packages/docker/docker-local) | [`tool-docker`](../packages/docker/tool-docker) | - | 容器查看、镜像列举、日志读取与 Compose 生命周期共用一个 ctx.docker seam；tool-docker 拥有稳定的面向模型名称。 |
 | `ctx.git` | `seam` | [`git`](../packages/git/git) | [`git-local`](../packages/git/git-local) | [`tool-git`](../packages/git/tool-git) | - | 仓库发现、状态、diff、历史、工作树、基线比较与索引/工作区改动共用一个 ctx.git seam；tool-git 拥有稳定的面向模型名称，浏览器面板经由 git.* RPC 域读取同一个 seam。 |
+| `ctx.repositories` | `seam` | [`repository`](../packages/repository/repository) | [`repository-local`](../packages/repository/repository-local) | - | [`repository-github`](../packages/repository/repository-github), [`repository-gitlab`](../packages/repository/repository-gitlab) | 目录的 list/get/add/remove/scan 经由一个被选中的 ctx.repositories 后端解析（repository-local 持久化目录并经 ctx.git 读取 git 事实）；forge 子插件向同一 seam 注册 GitHub/GitLab 的身份、能力与连接状态。 |
 | `ctx.web` | `seam` | [`web`](../packages/web/web) | [`web-search-exa`](../packages/web/web-search-exa), [`web-search-perplexity`](../packages/web/web-search-perplexity), [`web-search-deepseek`](../packages/web/web-search-deepseek), [`web-fetch-http`](../packages/web/web-fetch-http) | [`tool-web`](../packages/web/tool-web) | - | 搜索和抓取提供方注册到同一个 ctx.web seam；tool-web 负责稳定的面向模型名称。 |
 | `ctx.spillStore` | `seam` | [`spill`](../packages/spill/spill) | [`spill-local`](../packages/spill/spill-local) | [`spill-policy`](../packages/spill/spill-policy) | - | 后端保存过大的工具文本，并返回面向模型的定位信息和取回提示；spill-policy 是 tools/post-execute 消费方，负责决定何时 spill。 |
 | `ctx.directoryPicker` | `seam` | `directory-picker` | `directory-picker-native`, `directory-picker-browse` | `apiproxy` | - | 带判别标记的交互能力：原生后端在 Host 显示设备上打开一个操作系统选择器，浏览后端为应用内浏览器提供列表与创建原语；双端后端通过其浏览器侧填充 ui-workspace 目录流程的 slot（不通过协议发布）。 |

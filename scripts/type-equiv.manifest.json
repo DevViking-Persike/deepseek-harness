@@ -2046,6 +2046,91 @@
       "source": "packages/git/git/src/types.ts"
     },
     {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "RepositoryId",
+      "source": "packages/repository/repository/src/brand.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "Repository",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "RepositoryRemote",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "RepositoryForgeRef",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "RepositoryFilter",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "RepositoryAddRequest",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "RepositoryScanRequest",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "RepositoryScanResult",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "RepositoryChangeEvent",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "RepositoriesChangedListener",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "ForgeId",
+      "source": "packages/repository/repository/src/brand.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "ForgeCapabilities",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "ForgeState",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "ForgeStatus",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "ForgeProvider",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "CatalogProviderId",
+      "source": "packages/repository/repository/src/brand.ts"
+    },
+    {
+      "doc": "docs/subsystems/repository.md",
+      "symbol": "RepositoryCatalogProvider",
+      "source": "packages/repository/repository/src/types.ts"
+    },
+    {
       "doc": "docs/subsystems/git.md",
       "symbol": "GitBaseComparison",
       "source": "packages/git/git/src/types.ts"

@@ -2,8 +2,10 @@
 
 export const NS = 'repository-github'
 
+/** The namespace key union. */
 export type RepositoryGithubKey = keyof typeof zh
 
+/** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'section.github': 'GitHub',
   'header.title': 'GitHub 代码托管',
@@ -22,6 +24,7 @@ export const zh = {
   'guide.step3': '3. 刷新页面以完成服务发现与初始化',
 }
 
+/** English dictionary, checked complete against the zh key set. */
 export const en = {
   'section.github': 'GitHub',
   'header.title': 'GitHub Hosting',

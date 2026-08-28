@@ -1908,6 +1908,76 @@ export interface Config {
 
 Source: [`packages/guard/repeat-tool-reminder/src/index.ts:28`](../packages/guard/repeat-tool-reminder/src/index.ts)
 
+<a id="deepseek-aidsh-repository"></a>
+
+## `@deepseek-ai/dsh-repository`
+
+```ts config-catalog
+/**
+ * Configuration options for the Repositories service.
+ */
+export interface RepositoriesConfig {
+  /** Explicit catalog provider identifier to select. */
+  readonly catalogProvider?: string
+}
+```
+
+Source: [`packages/repository/repository/src/index.ts:75`](../packages/repository/repository/src/index.ts)
+
+<a id="deepseek-aidsh-repository-github"></a>
+
+## `@deepseek-ai/dsh-repository-github`
+
+Requires: `repositories`
+
+```ts config-catalog
+/**
+ * Configuration options for the GitHub forge subplugin.
+ */
+export interface RepositoryGithubConfig {
+  /** Custom domain for GitHub Enterprise installations (defaults to 'github.com'). */
+  readonly domain?: string
+}
+```
+
+Source: [`packages/repository/repository-github/src/index.ts:26`](../packages/repository/repository-github/src/index.ts)
+
+<a id="deepseek-aidsh-repository-gitlab"></a>
+
+## `@deepseek-ai/dsh-repository-gitlab`
+
+Requires: `repositories`
+
+```ts config-catalog
+/**
+ * Configuration options for the GitLab forge subplugin.
+ */
+export interface RepositoryGitlabConfig {
+  /** Custom domain for self-hosted GitLab instances (defaults to 'gitlab.com'). */
+  readonly domain?: string
+}
+```
+
+Source: [`packages/repository/repository-gitlab/src/index.ts:26`](../packages/repository/repository-gitlab/src/index.ts)
+
+<a id="deepseek-aidsh-repository-local"></a>
+
+## `@deepseek-ai/dsh-repository-local`
+
+Requires: `git` · `storageDomain` · `repositories`
+
+```ts config-catalog
+/**
+ * Configuration options for the local repository catalog provider.
+ */
+export interface RepositoryLocalConfig {
+  /** Optional custom provider identifier. */
+  readonly id?: string
+}
+```
+
+Source: [`packages/repository/repository-local/src/index.ts:51`](../packages/repository/repository-local/src/index.ts)
+
 <a id="deepseek-aidsh-sandbox-local"></a>
 
 ## `@deepseek-ai/dsh-sandbox-local`
@@ -3601,6 +3671,10 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-plan` ([`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-reference` ([`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-renderer` ([`packages/client/ui-renderer/src/index.ts`](../packages/client/ui-renderer/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-repositories` ([`packages/client/ui-repositories/src/index.ts`](../packages/client/ui-repositories/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-repository-github` ([`packages/client/ui-repository-github/src/index.ts`](../packages/client/ui-repository-github/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-repository-gitlab` ([`packages/client/ui-repository-gitlab/src/index.ts`](../packages/client/ui-repository-gitlab/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-repository-local` ([`packages/client/ui-repository-local/src/index.ts`](../packages/client/ui-repository-local/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings` ([`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-general` ([`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-models` ([`packages/client/ui-settings-models/src/index.ts`](../packages/client/ui-settings-models/src/index.ts))

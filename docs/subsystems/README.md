@@ -42,6 +42,7 @@ One page per subsystem of the DeepSeek Harness: what it is, the data structures 
 | [web.md](web.md) | the web access seam: `WebSearchRequest`/`Result`, `WebFetchRequest`/`Result`, `WebFetchBody`, provider availability, `WebError` |
 | [docker.md](docker.md) | the Docker access seam: `DockerContainer`/`State`, `DockerImage`, `DockerLogsRequest`/`Result`, `DockerComposeRequest`/`Result`, per-call provider availability, `DockerError` |
 | [git.md](git.md) | the Git access seam: `GitFileChange` with both index sides, `GitWorktree`, `GitBaseComparison`, `GitGraph`, `GitDiscardResult`, per-call provider availability, `GitError` |
+| [repository.md](repository.md) | the repository catalog seam: `Repository` records and `RepositoryFilter`, add/scan requests, `RepositoryChangeEvent`, forge registration (`ForgeProvider`, `ForgeCapabilities`, `ForgeStatus`), `RepositoryCatalogProvider`, per-operation provider selection, `RepositoryError` |
 | [spill.md](spill.md) | the spill storage seam: `SaveTextSpill`, `SpillOwner`/`SpillSource`, `SpillRef`, the branded `SpillLocator` |
 | [workflow.md](workflow.md) | the workflow seam: `WorkflowStartRequest`, `WorkflowMeta`, `WorkflowRun`/`Result`, the `workflow/*` event payloads, `WorkflowError` fatality |
 | [jobs.md](jobs.md) | the background-job runtime: branded `JobId`s, the producer contract, consumer views, and `ctx.jobs` service behavior |

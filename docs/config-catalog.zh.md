@@ -976,6 +976,8 @@ export interface Config {
 来源：[`packages/host/frontend-static/src/index.ts:28`](../packages/host/frontend-static/src/index.ts)
 
 
+<a id="deepseek-aidsh-host-monaco-assets"></a>
+
 ## `@deepseek-ai/dsh-host-monaco-assets`
 
 需要：`webServer`
@@ -1045,6 +1047,8 @@ export interface Config {
 来源：[`packages/jobs/jobs-local/src/index.ts:31`](../packages/jobs/jobs-local/src/index.ts)
 
 
+<a id="deepseek-aidsh-llm-claude-code"></a>
+
 ## `@deepseek-ai/dsh-llm-claude-code`
 
 需要：`llm`
@@ -1103,6 +1107,8 @@ Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicy
 来源：[`packages/llm/llm-claude-code/src/index.ts:77`](../packages/llm/llm-claude-code/src/index.ts)
 
 
+<a id="deepseek-aidsh-llm-cliproxy"></a>
+
 ## `@deepseek-ai/dsh-llm-cliproxy`
 
 需要：`llm`
@@ -1155,6 +1161,8 @@ Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicy
 
 来源：[`packages/llm/llm-cliproxy/src/index.ts:82`](../packages/llm/llm-cliproxy/src/index.ts)
 
+
+<a id="deepseek-aidsh-llm-codex"></a>
 
 ## `@deepseek-ai/dsh-llm-codex`
 
@@ -1905,6 +1913,76 @@ export interface Config {
 ```
 
 来源：[`packages/guard/repeat-tool-reminder/src/index.ts:28`](../packages/guard/repeat-tool-reminder/src/index.ts)
+
+<a id="deepseek-aidsh-repository"></a>
+
+## `@deepseek-ai/dsh-repository`
+
+```ts config-catalog
+/**
+ * Configuration options for the Repositories service.
+ */
+export interface RepositoriesConfig {
+  /** Explicit catalog provider identifier to select. */
+  readonly catalogProvider?: string
+}
+```
+
+来源：[`packages/repository/repository/src/index.ts:75`](../packages/repository/repository/src/index.ts)
+
+<a id="deepseek-aidsh-repository-github"></a>
+
+## `@deepseek-ai/dsh-repository-github`
+
+需要：`repositories`
+
+```ts config-catalog
+/**
+ * Configuration options for the GitHub forge subplugin.
+ */
+export interface RepositoryGithubConfig {
+  /** Custom domain for GitHub Enterprise installations (defaults to 'github.com'). */
+  readonly domain?: string
+}
+```
+
+来源：[`packages/repository/repository-github/src/index.ts:26`](../packages/repository/repository-github/src/index.ts)
+
+<a id="deepseek-aidsh-repository-gitlab"></a>
+
+## `@deepseek-ai/dsh-repository-gitlab`
+
+需要：`repositories`
+
+```ts config-catalog
+/**
+ * Configuration options for the GitLab forge subplugin.
+ */
+export interface RepositoryGitlabConfig {
+  /** Custom domain for self-hosted GitLab instances (defaults to 'gitlab.com'). */
+  readonly domain?: string
+}
+```
+
+来源：[`packages/repository/repository-gitlab/src/index.ts:26`](../packages/repository/repository-gitlab/src/index.ts)
+
+<a id="deepseek-aidsh-repository-local"></a>
+
+## `@deepseek-ai/dsh-repository-local`
+
+需要：`git` · `storageDomain` · `repositories`
+
+```ts config-catalog
+/**
+ * Configuration options for the local repository catalog provider.
+ */
+export interface RepositoryLocalConfig {
+  /** Optional custom provider identifier. */
+  readonly id?: string
+}
+```
+
+来源：[`packages/repository/repository-local/src/index.ts:52`](../packages/repository/repository-local/src/index.ts)
 
 <a id="deepseek-aidsh-sandbox-local"></a>
 
@@ -3599,6 +3677,10 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-plan`（[`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-reference`（[`packages/client/ui-reference/src/index.ts`](../packages/client/ui-reference/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-renderer`（[`packages/client/ui-renderer/src/index.ts`](../packages/client/ui-renderer/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-repositories`（[`packages/client/ui-repositories/src/index.ts`](../packages/client/ui-repositories/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-repository-github`（[`packages/client/ui-repository-github/src/index.ts`](../packages/client/ui-repository-github/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-repository-gitlab`（[`packages/client/ui-repository-gitlab/src/index.ts`](../packages/client/ui-repository-gitlab/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-repository-local`（[`packages/client/ui-repository-local/src/index.ts`](../packages/client/ui-repository-local/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings`（[`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-general`（[`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-models`（[`packages/client/ui-settings-models/src/index.ts`](../packages/client/ui-settings-models/src/index.ts)）

@@ -10,6 +10,8 @@
 
 别的插件可以经 `ctx.conversation.blocks` 让某个会话的编辑器变为惰性：它设置一个携带自己本地化理由的 block，输入栏就渲染同一个禁用的 textarea，并把该理由作为 placeholder——复用无 Workspace 时的那套姿态。推送方向是约束而非偏好：知道某会话发不出消息的插件（ui-model-selection，在没有适配器服务其路由时）本就依赖本包，因此本包读不到它们。模型 seat 是 block 唯一保留可用的控件——这份约定里的每个 block 都靠选模型来解除，把它一起锁上会让编辑器索要它自己拦下的那件事。block 只是提示性设计；无论客户端禁用了什么，宿主都会拒绝一个它无法路由的提示词。两者同时成立时以无 Workspace 姿态为准，因为选 Workspace 是更靠前的前提。
 
+`ctx.conversation.imageSupport` 是同一种推送的更细粒度形式：本会话当前模型是否接受图片输入，从而让纯文本模型在编辑器处就拒绝附件，而不是等到发送时——那时消息已经持久化，会话会不断重发一个不可能成功的请求。取值是三态的——`true` 接受、`false` 拒绝、`undefined` 无法判断——只有 catalog 条目**声明了**模态却不含 `image` 的模型才拒绝。未声明模态的条目、不在建议 catalog 中的模型、以及尚未加载的目录都表示无法判断，绝不门控，因为以缺失为依据门控会让缓慢或不可达的宿主锁死本可工作的附件路径。与 block 一样，这只是提示性设计；宿主仍会拒绝模型无法接受的图片内容。
+
 视图环是一个 slot：严格会话主体注册在 `children` 表中声明会话作用域的 `'conversation.view'` 列表，并通过自身的 renderSlot share 渲染活跃配置项（`only: <active id>`）；视图标签页则从注册选项（`id`／`order`／`label`）投影而来。聊天视图是该包自身的配置项；ui-trajectory 等插件通过 `ctx.slots.register` 贡献标签页，每个视图负责自己的 chrome。
 
 Chat 业务行是彼此独立的注册表贡献，不是封闭的内建联合。Client 插件通过 declaration merging 增加类型化 `ChatNodeDataMap` key，在 `ctx.conversationEvents` 上注册 `ConversationNodeDefinition`，再向 `conversation.chat.node` 注册匹配的 keyed renderer；它无须修改会话 fold 或中央 renderer switch。稳定事件 id、append/prepend 回放、Location data 与 renderer 约束见 [Conversation Node 实操手册](../../../docs/cookbook/adding-a-conversation-node.md)。

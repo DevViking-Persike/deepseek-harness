@@ -2,8 +2,10 @@
 
 export const NS = 'repositories'
 
+/** The namespace key union. */
 export type RepositoriesKey = keyof typeof zh
 
+/** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'view.repositories': '代码仓库',
   'header.title': '代码仓库管理',
@@ -14,6 +16,7 @@ export const zh = {
   'tab.gitlab': 'GitLab',
 }
 
+/** English dictionary, checked complete against the zh key set. */
 export const en = {
   'view.repositories': 'Repositories',
   'header.title': 'Repository Management',
