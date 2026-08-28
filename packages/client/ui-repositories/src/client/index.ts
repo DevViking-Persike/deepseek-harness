@@ -38,7 +38,9 @@ export function apply(ctx: ClientContext): void {
         entries.push({
           id: entry.options.id,
           label: resolveSlotLabel(entry.options.label) ?? entry.options.id,
-          order: entry.options.order,
+          // exactOptionalPropertyTypes: an absent order must stay absent, not
+          // become an explicit undefined.
+          ...(entry.options.order !== undefined ? { order: entry.options.order } : {}),
         })
       }
       return entries

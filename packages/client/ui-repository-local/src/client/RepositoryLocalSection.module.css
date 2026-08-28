@@ -40,6 +40,10 @@
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 6px;
   background: var(--dsw-alias-bg-layer-2);
+  /* Elevated surface: rebind the scrollbar thumb pair the theme documents
+     for l2 surfaces, or the l1 thumb disappears on it. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   color: var(--dsw-alias-label-primary);
   font-size: 12px;
   font-weight: 500;
@@ -89,6 +93,10 @@
 .repoCardActive {
   border-color: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
   background: var(--dsw-alias-bg-layer-2);
+  /* Elevated surface: rebind the scrollbar thumb pair the theme documents
+     for l2 surfaces, or the l1 thumb disappears on it. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   box-shadow: 0 0 0 1px var(--dsw-alias-brand-primary-new-colorprimary-new-color);
 }
 
@@ -195,6 +203,10 @@
   padding: 10px 12px;
   border-radius: 6px;
   background: var(--dsw-alias-bg-layer-2);
+  /* Elevated surface: rebind the scrollbar thumb pair the theme documents
+     for l2 surfaces, or the l1 thumb disappears on it. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 .statusLabel {
@@ -225,6 +237,10 @@
   padding: 6px 8px;
   border-radius: 4px;
   background: var(--dsw-alias-bg-layer-2);
+  /* Elevated surface: rebind the scrollbar thumb pair the theme documents
+     for l2 surfaces, or the l1 thumb disappears on it. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   font-size: 12px;
 }
 
@@ -304,6 +320,10 @@
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 6px;
   background: var(--dsw-alias-bg-layer-2);
+  /* Elevated surface: rebind the scrollbar thumb pair the theme documents
+     for l2 surfaces, or the l1 thumb disappears on it. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   color: var(--dsw-alias-label-primary);
   font-size: 12px;
   cursor: pointer;

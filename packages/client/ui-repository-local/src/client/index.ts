@@ -8,6 +8,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-repositories/client'
 import { en, NS, zh } from './locales.ts'
 import { GitUnavailable, RepositoryLocalSection } from './RepositoryLocalSection.tsx'
+import type { GitRepositoryRow, GitStatusView, RepositoryLocalInjected } from './RepositoryLocalSection.tsx'
 
 export type {
   GitChangeRow,

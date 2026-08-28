@@ -2,6 +2,8 @@
 
 export const NS = 'repository-local'
 
+export type RepositoryLocalKey = keyof typeof zh
+
 export const zh = {
   'section.local': '本地仓库',
   'header.title': '本地 Git 仓库',
@@ -60,4 +62,11 @@ export const en = {
   'error.retry': 'Retry',
   'details.title': 'Repository Status Summary',
   'details.selectHint': 'Select a repository to view status details',
+}
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    /** This repository panel's copy. */
+    'repository-local': RepositoryLocalKey
+  }
 }

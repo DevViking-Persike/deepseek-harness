@@ -76,6 +76,10 @@
 
 .tabButtonActive {
   background: var(--dsw-alias-bg-layer-2);
+  /* Elevated surface: rebind the scrollbar thumb pair the theme
+     documents for l2 surfaces, or the l1 thumb disappears on it. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   border-color: var(--dsw-alias-border-l2);
   color: var(--dsw-alias-label-primary);
   font-weight: 600;

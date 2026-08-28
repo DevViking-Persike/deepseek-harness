@@ -2,6 +2,8 @@
 
 export const NS = 'repository-gitlab'
 
+export type RepositoryGitlabKey = keyof typeof zh
+
 export const zh = {
   'section.gitlab': 'GitLab',
   'header.title': 'GitLab 代码托管',
@@ -36,4 +38,11 @@ export const en = {
   'guide.step1': '1. Mount the GitLab Provider plugin in host configuration cordis.yml with instance URL',
   'guide.step2': '2. Configure a GitLab Personal or Project Access Token',
   'guide.step3': '3. Reload the page to complete service discovery and initialization',
+}
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    /** This repository panel's copy. */
+    'repository-gitlab': RepositoryGitlabKey
+  }
 }

@@ -2,6 +2,8 @@
 
 export const NS = 'repository-github'
 
+export type RepositoryGithubKey = keyof typeof zh
+
 export const zh = {
   'section.github': 'GitHub',
   'header.title': 'GitHub 代码托管',
@@ -36,4 +38,11 @@ export const en = {
   'guide.step1': '1. Mount the GitHub Provider plugin in host configuration cordis.yml',
   'guide.step2': '2. Configure a Personal Access Token or GitHub App credentials',
   'guide.step3': '3. Reload the page to complete service discovery and initialization',
+}
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    /** This repository panel's copy. */
+    'repository-github': RepositoryGithubKey
+  }
 }

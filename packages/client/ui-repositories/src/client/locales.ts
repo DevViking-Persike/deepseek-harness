@@ -2,6 +2,8 @@
 
 export const NS = 'repositories'
 
+export type RepositoriesKey = keyof typeof zh
+
 export const zh = {
   'view.repositories': '代码仓库',
   'header.title': '代码仓库管理',
@@ -20,4 +22,11 @@ export const en = {
   'tab.local': 'Local',
   'tab.github': 'GitHub',
   'tab.gitlab': 'GitLab',
+}
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    /** This repository panel's copy. */
+    'repositories': RepositoriesKey
+  }
 }
