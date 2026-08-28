@@ -7,12 +7,16 @@ import { MemoryMediaPool, MemoryStorageBackend } from '../../../storage/storage-
 import * as RepositoryLocal from '../src/index.ts'
 
 interface HarnessOptions {
+  /**
+   * What `ctx.git.discover` reports: GitRepository is identity only, so a
+   * fake that adds remotes or branch fields would describe a service the
+   * harness does not have.
+   */
   discoveredRepos?: Array<{
     root: string
-    remotes: Array<{ name: string; url: string }>
-    defaultBranch?: string
-    currentBranch?: string
-    isClean?: boolean
+    name?: string
+    workspacePath?: string
+    submodule?: boolean
   }>
   gitStatus?: {
     branch?: string
@@ -36,7 +40,12 @@ async function harness(options: HarnessOptions = {}) {
 
   // Mock Git service
   const discoverMock = vi.fn(async () => ({
-    repositories: options.discoveredRepos ?? [],
+    repositories: (options.discoveredRepos ?? []).map(repo => ({
+      root: repo.root,
+      name: repo.name ?? repo.root.split('/').pop() ?? repo.root,
+      workspacePath: repo.workspacePath ?? '/code',
+      submodule: repo.submodule ?? false,
+    })),
     truncated: false,
   }))
   const statusMock = vi.fn(async () => options.gitStatus ?? { branch: 'main', changes: [] })
@@ -106,27 +115,15 @@ describe('repository-local provider', () => {
     expect(listAfterRemove).toEqual([])
   })
 
-  it('scans roots and parses forge metadata from git remotes', async () => {
+  it('scans roots into records carrying the status facts discovery does not report', async () => {
+    // GitRepository reports identity only (root, name, workspacePath,
+    // submodule). Branch and cleanliness come from a separate status call, and
+    // remotes are not discovered at all — so a scanned record carries no forge
+    // reference until `add` resolves one from a remote URL.
     const { ctx, discoverMock } = await harness({
       discoveredRepos: [
-        {
-          root: '/code/github-project',
-          remotes: [
-            { name: 'origin', url: 'git@github.com:deepseek-ai/project-a.git' },
-          ],
-          defaultBranch: 'main',
-          currentBranch: 'main',
-          isClean: true,
-        },
-        {
-          root: '/code/gitlab-project',
-          remotes: [
-            { name: 'origin', url: 'https://gitlab.com/group-b/project-b.git' },
-          ],
-          defaultBranch: 'master',
-          currentBranch: 'feature',
-          isClean: false,
-        },
+        { root: '/code/github-project' },
+        { root: '/code/gitlab-project' },
       ],
     })
 
@@ -138,28 +135,45 @@ describe('repository-local provider', () => {
 
     expect(scanResult.added).toHaveLength(2)
     const githubRepo = scanResult.added.find(r => r.name === 'github-project')
-    expect(githubRepo?.forge).toEqual({
-      forgeId: ForgeId('github'),
-      owner: 'deepseek-ai',
-      name: 'project-a',
-    })
-
-    const gitlabRepo = scanResult.added.find(r => r.name === 'gitlab-project')
-    expect(gitlabRepo?.forge).toEqual({
-      forgeId: ForgeId('gitlab'),
-      owner: 'group-b',
-      name: 'project-b',
-    })
-
-    // Filter by forge
-    const githubOnly = await ctx.repositories.list({ forgeId: ForgeId('github') })
-    expect(githubOnly).toHaveLength(1)
-    expect(githubOnly[0]?.name).toBe('github-project')
+    expect(githubRepo?.path).toBe('/code/github-project')
+    expect(githubRepo?.forge).toBeUndefined()
+    expect(githubRepo?.remotes).toBeUndefined()
 
     // Second scan reports existing
     const secondScan = await ctx.repositories.scan({ roots: ['/code'] })
     expect(secondScan.added).toHaveLength(0)
     expect(secondScan.existing).toHaveLength(2)
+  })
+
+  it('resolves the forge reference when a repository is added with a remote', async () => {
+    // The forge parse belongs to `add`, which receives the remote URL the
+    // caller supplies; this is the path that populates `forge` and the one
+    // `list({ forgeId })` filters on.
+    const { ctx } = await harness()
+
+    await ctx.repositories.add({
+      path: '/code/project-a',
+      remotes: [{ name: 'origin', url: 'git@github.com:deepseek-ai/project-a.git' }],
+    })
+    await ctx.repositories.add({
+      path: '/code/project-b',
+      remotes: [{ name: 'origin', url: 'https://gitlab.com/group-b/project-b.git' }],
+    })
+
+    const githubOnly = await ctx.repositories.list({ forgeId: ForgeId('github') })
+    expect(githubOnly).toHaveLength(1)
+    expect(githubOnly[0]?.forge).toEqual({
+      forgeId: ForgeId('github'),
+      owner: 'deepseek-ai',
+      name: 'project-a',
+    })
+
+    const gitlabOnly = await ctx.repositories.list({ forgeId: ForgeId('gitlab') })
+    expect(gitlabOnly[0]?.forge).toEqual({
+      forgeId: ForgeId('gitlab'),
+      owner: 'group-b',
+      name: 'project-b',
+    })
   })
 
   it('unregisters cleanly on fiber disposal', async () => {

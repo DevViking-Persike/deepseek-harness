@@ -21,7 +21,6 @@ import type {
   RepositoryCatalogProvider,
   RepositoryFilter,
   RepositoryForgeRef,
-  RepositoryRemote,
   RepositoryScanRequest,
   RepositoryScanResult,
 } from '@deepseek-ai/dsh-repository'
@@ -232,7 +231,8 @@ export async function apply(ctx: Context, config: RepositoryLocalConfig = {}): P
         if (found !== undefined) {
           existing.push(found)
         } else {
-          // Query git status facts via ctx.git
+          // Discovery reports identity only (root, name, workspacePath,
+          // submodule); branch and cleanliness come from a status call.
           let currentBranch: string | undefined
           let isClean: boolean | undefined
           try {
@@ -243,35 +243,19 @@ export async function apply(ctx: Context, config: RepositoryLocalConfig = {}): P
             // Unborn or git error
           }
 
-          const rawDiscovered = discovered as unknown as {
-            remotes?: readonly RepositoryRemote[]
-            defaultBranch?: string
-            currentBranch?: string
-            isClean?: boolean
-          }
-          const remotes = rawDiscovered.remotes
-          let forge: RepositoryForgeRef | undefined
-          if (remotes !== undefined) {
-            for (const remote of remotes) {
-              const parsed = parseForgeRef(remote.url)
-              if (parsed !== undefined) {
-                forge = parsed
-                break
-              }
-            }
-          }
-
+          // Remotes are not part of discovery, so a scanned repository carries
+          // no forge reference: `add` resolves one from the remote URL, and a
+          // scan-created record gains it there. Reading remotes off the
+          // discovery result through a cast made the field look populated
+          // while it was always undefined.
           const now = new Date().toISOString()
           const id = RepositoryId(randomUUID())
           const record: RepositoryRecord = {
             id,
             name: discovered.name || basename(discovered.root),
             path: resolve(discovered.root),
-            remotes: remotes !== undefined ? [...remotes] : undefined,
-            defaultBranch: rawDiscovered.defaultBranch,
-            currentBranch: rawDiscovered.currentBranch ?? currentBranch,
-            isClean: rawDiscovered.isClean ?? isClean,
-            forge,
+            currentBranch,
+            isClean,
             createdAt: now,
             updatedAt: now,
           }
