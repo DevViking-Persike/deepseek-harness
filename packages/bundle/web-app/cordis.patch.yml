@@ -307,8 +307,8 @@
 
     # OpenNjord development pipeline projected from the project-owned cursor
     # and ordinary full-capability Sessions.
-    - id: ui-esteira
-      name: '@deepseek-ai/dsh-client-ui-esteira'
+    - id: ui-treadmill
+      name: '@deepseek-ai/dsh-client-ui-treadmill'
 
     # A Monaco buffer over the workspace, beside the Docker tab. Saves carry
     # the version the file was read at, so a concurrent agent edit is refused

@@ -11,6 +11,7 @@ import type { AgentPresetsApi } from './agent-presets.ts'
 import type { SkillsApi } from './skills.ts'
 import type { DockerApi } from './docker.ts'
 import type { EditorApi } from './editor.ts'
+import type { TreadmillApi } from './treadmill.ts'
 import type { GitApi } from './git.ts'
 import type { GoalsApi } from './goals.ts'
 import type { SettingsApi } from './settings.ts'
@@ -58,6 +59,9 @@ export interface RpcMethodMap {
   'editor.listDir': EditorApi['listDir']
   'editor.readFile': EditorApi['readFile']
   'editor.writeFile': EditorApi['writeFile']
+  'treadmill.describe': TreadmillApi['describe']
+  'treadmill.readFile': TreadmillApi['readFile']
+  'treadmill.writeFile': TreadmillApi['writeFile']
   'git.listRepositories': GitApi['listRepositories']
   'git.status': GitApi['status']
   'git.worktrees': GitApi['worktrees']

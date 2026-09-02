@@ -45,6 +45,9 @@ import {
   editorLanguageServersValueSchema, editorListDirValueSchema, editorReadFileValueSchema, editorWriteFileValueSchema,
 } from '../api/editor.schema.ts'
 import {
+  treadmillDescribeValueSchema, treadmillReadFileValueSchema, treadmillWriteFileValueSchema,
+} from '../api/treadmill.schema.ts'
+import {
   gitCommitValueSchema, gitDiffValueSchema, gitDiscardValueSchema,
   gitListRepositoriesValueSchema, gitLogValueSchema, gitRecoverValueSchema,
   gitStatusValueSchema, gitWorktreesValueSchema,
@@ -159,6 +162,11 @@ export interface IApiClient {
     readFile(payload: RequestPayload<'editor.readFile'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'editor.readFile'>>>
     writeFile(payload: RequestPayload<'editor.writeFile'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'editor.writeFile'>>>
   }
+  treadmill: {
+    describe(payload: RequestPayload<'treadmill.describe'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'treadmill.describe'>>>
+    readFile(payload: RequestPayload<'treadmill.readFile'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'treadmill.readFile'>>>
+    writeFile(payload: RequestPayload<'treadmill.writeFile'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'treadmill.writeFile'>>>
+  }
   docker: {
     engineStatus(payload: RequestPayload<'docker.engineStatus'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.engineStatus'>>>
     startEngine(payload: RequestPayload<'docker.startEngine'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'docker.startEngine'>>>
@@ -250,6 +258,9 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'editor.listDir': editorListDirValueSchema,
   'editor.readFile': editorReadFileValueSchema,
   'editor.writeFile': editorWriteFileValueSchema,
+  'treadmill.describe': treadmillDescribeValueSchema,
+  'treadmill.readFile': treadmillReadFileValueSchema,
+  'treadmill.writeFile': treadmillWriteFileValueSchema,
   'git.listRepositories': gitListRepositoriesValueSchema,
   'git.status': gitStatusValueSchema,
   'git.worktrees': gitWorktreesValueSchema,
@@ -550,6 +561,12 @@ export abstract class AbstractApiClient implements IApiClient {
     listDir: (payload, signal) => this.callUnary('editor.listDir', payload, signal),
     readFile: (payload, signal) => this.callUnary('editor.readFile', payload, signal),
     writeFile: (payload, signal) => this.callUnary('editor.writeFile', payload, signal),
+  }
+
+  readonly treadmill: IApiClient['treadmill'] = {
+    describe: (payload, signal) => this.callUnary('treadmill.describe', payload, signal),
+    readFile: (payload, signal) => this.callUnary('treadmill.readFile', payload, signal),
+    writeFile: (payload, signal) => this.callUnary('treadmill.writeFile', payload, signal),
   }
 
   readonly docker: IApiClient['docker'] = {

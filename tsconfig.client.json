@@ -88,7 +88,7 @@
     { "path": "./packages/client/ui-user-questions" },
     { "path": "./packages/client/ui-trajectory" },
     { "path": "./packages/client/ui-docker" },
-    { "path": "./packages/client/ui-esteira" },
+    { "path": "./packages/client/ui-treadmill" },
     { "path": "./packages/client/ui-editor" },
     { "path": "./packages/client/ui-git" },
     { "path": "./packages/client/ui-repositories" },

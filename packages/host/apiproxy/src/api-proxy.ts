@@ -87,6 +87,7 @@ import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 // Value edge: the docker domain narrows the seam's provider-selection failures
 // onto one wire code; the import also resolves `ctx.get('docker')`.
 import { DockerError } from '@deepseek-ai/dsh-docker'
+import { TreadmillError } from '@deepseek-ai/dsh-treadmill'
 import type { DockerContainer, DockerImage } from '@deepseek-ai/dsh-docker'
 // Value edge: the git domain narrows the seam's provider-selection and
 // repository failures onto its own wire codes; the import also resolves
@@ -1305,6 +1306,23 @@ function editorAbsent(): RpcError {
     message: 'filesystem seam is absent: this composition mounts no @deepseek-ai/dsh-fs provider in its plugin set',
     details: {},
   }
+}
+
+/** The wire refusal every treadmill.* row answers when no composition mounts the Treadmill service. */
+function treadmillAbsent(): RpcError {
+  return {
+    code: 'treadmill-unavailable',
+    message: 'treadmill service is absent: this composition mounts no @deepseek-ai/dsh-treadmill plugin',
+    details: {},
+  }
+}
+
+/** Map one installation-file failure onto the treadmill wire vocabulary. */
+function treadmillError(error: unknown): RpcError {
+  if (error instanceof TreadmillError) {
+    return { code: error.code === 'denied' ? 'treadmill-denied' : 'treadmill-not-found', message: error.message, details: {} }
+  }
+  return { code: 'internal', message: error instanceof Error ? error.message : String(error), details: {} }
 }
 
 /**
@@ -3736,6 +3754,36 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           return ok(request, { path: target.displayPath, version: String(outcome.version) })
         } catch (error: unknown) {
           return err(request, editorError(error))
+        }
+      },
+    },
+
+    treadmill: {
+      // The installation is host-owned and outside every workspace, so the
+      // service, not the sandboxed fs seam, reads and writes it; the service
+      // refuses any path that leaves its root.
+      async describe(request) {
+        const treadmill = ctx.get('treadmill')
+        if (treadmill === undefined) return err(request, treadmillAbsent())
+        return ok(request, await treadmill.describe())
+      },
+      async readFile(request) {
+        const treadmill = ctx.get('treadmill')
+        if (treadmill === undefined) return err(request, treadmillAbsent())
+        try {
+          return ok(request, { path: request.payload.path, content: await treadmill.readFile(request.payload.path) })
+        } catch (error: unknown) {
+          return err(request, treadmillError(error))
+        }
+      },
+      async writeFile(request) {
+        const treadmill = ctx.get('treadmill')
+        if (treadmill === undefined) return err(request, treadmillAbsent())
+        try {
+          await treadmill.writeFile(request.payload.path, request.payload.content)
+          return ok(request, { path: request.payload.path })
+        } catch (error: unknown) {
+          return err(request, treadmillError(error))
         }
       },
     },

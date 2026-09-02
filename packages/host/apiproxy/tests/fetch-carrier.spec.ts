@@ -242,6 +242,17 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
         return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path, version: 'v2' } } }
       },
     },
+    treadmill: {
+      async describe(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { root: '/t', enabled: true, stages: [], files: [] } } }
+      },
+      async readFile(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path, content: '' } } }
+      },
+      async writeFile(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path } } }
+      },
+    },
     git: {
       async listRepositories(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { repositories: [], truncated: false } } }

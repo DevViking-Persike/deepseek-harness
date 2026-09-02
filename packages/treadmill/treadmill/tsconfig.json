@@ -1,0 +1,20 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../../vendor/cosmokit" },
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../skill/skill" },
+    { "path": "../../core/agent" },
+    { "path": "../../core/system-prompt" },
+    { "path": "../../settings/settings" },
+    { "path": "../../util/home-paths" },
+    { "path": "../../../vendor/schemastery" },
+    { "path": "../../skill/skill-filesystem" },
+    { "path": "../../runtime-diagnostics/invariants" }
+  ]
+}

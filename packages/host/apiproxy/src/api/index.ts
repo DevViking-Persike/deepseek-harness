@@ -11,6 +11,7 @@ import type { AgentPresetsApi } from './agent-presets.ts'
 import type { SkillsApi } from './skills.ts'
 import type { DockerApi } from './docker.ts'
 import type { EditorApi } from './editor.ts'
+import type { TreadmillApi } from './treadmill.ts'
 import type { GitApi } from './git.ts'
 import type { SubagentsApi } from './subagents.ts'
 import type { EventsApi } from './events.ts'
@@ -30,6 +31,7 @@ export interface ApiProxy {
   skills: SkillsApi
   docker: DockerApi
   editor: EditorApi
+  treadmill: TreadmillApi
   git: GitApi
   agentPresets: AgentPresetsApi
   events: EventsApi
@@ -62,6 +64,7 @@ export type { JobView } from './jobs.ts'
 export type { WorkspaceApi, WorkspaceId, WorkspaceView } from './workspace.ts'
 export type { SkillsApi, SkillEntry } from './skills.ts'
 export type { EditorApi, EditorDirEntry, EditorFile, EditorLanguageServer, EditorListing } from './editor.ts'
+export type { TreadmillApi, TreadmillDescriptionView, TreadmillFileView, TreadmillStageView } from './treadmill.ts'
 export type {
   GitApi, GitChangeKindView, GitCommitView, GitDiffSideView, GitDiffView,
   GitFileChangeView, GitRepositoryEntry, GitStatusView, GitWorktreeView,

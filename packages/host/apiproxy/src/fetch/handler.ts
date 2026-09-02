@@ -48,6 +48,9 @@ import {
   editorLanguageServersRequestSchema, editorListDirRequestSchema, editorReadFileRequestSchema, editorWriteFileRequestSchema,
 } from '../api/editor.schema.ts'
 import {
+  treadmillDescribeRequestSchema, treadmillReadFileRequestSchema, treadmillWriteFileRequestSchema,
+} from '../api/treadmill.schema.ts'
+import {
   gitCommitRequestSchema, gitDiffRequestSchema, gitDiscardRequestSchema,
   gitListRepositoriesRequestSchema, gitLogRequestSchema, gitRecoverRequestSchema,
   gitStageRequestSchema, gitStatusRequestSchema, gitUnstageRequestSchema,
@@ -137,6 +140,9 @@ const UNARY_ROUTES: UnaryRoutes = {
   'editor.listDir': { schema: editorListDirRequestSchema, invoke: (api, r, signal) => api.editor.listDir(r, signal) },
   'editor.readFile': { schema: editorReadFileRequestSchema, invoke: (api, r, signal) => api.editor.readFile(r, signal) },
   'editor.writeFile': { schema: editorWriteFileRequestSchema, invoke: (api, r, signal) => api.editor.writeFile(r, signal) },
+  'treadmill.describe': { schema: treadmillDescribeRequestSchema, invoke: (api, r, signal) => api.treadmill.describe(r, signal) },
+  'treadmill.readFile': { schema: treadmillReadFileRequestSchema, invoke: (api, r, signal) => api.treadmill.readFile(r, signal) },
+  'treadmill.writeFile': { schema: treadmillWriteFileRequestSchema, invoke: (api, r, signal) => api.treadmill.writeFile(r, signal) },
   'git.listRepositories': { schema: gitListRepositoriesRequestSchema, invoke: (api, r, signal) => api.git.listRepositories(r, signal) },
   'git.status': { schema: gitStatusRequestSchema, invoke: (api, r, signal) => api.git.status(r, signal) },
   'git.worktrees': { schema: gitWorktreesRequestSchema, invoke: (api, r, signal) => api.git.worktrees(r, signal) },

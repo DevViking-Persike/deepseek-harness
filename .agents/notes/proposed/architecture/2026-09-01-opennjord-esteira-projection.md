@@ -1,4 +1,4 @@
-# OpenNjord Esteira projection over full Harness sessions
+# OpenNjord Treadmill: harness-owned installation projected over full Harness sessions
 
 ## Status
 
@@ -14,7 +14,7 @@ The Harness already owns full-capability Sessions, per-step provider and model h
 
 The Esteira capability projects project files and ordinary Harness Sessions instead of replacing either one.
 
-The harness owns the installation. `@deepseek-ai/dsh-skill-opennjord` vendors the complete `.opennjord` tree and registers its `skills` directory as one global-layer filesystem Skill provider, so every project sees `/discovery`, `/arquitetura`, `/desenvolvimento`, `/review-codigo-subagents`, `/qa`, `/qa-rpa`, `/seguranca`, `/redteam`, `/deploy`, and `/scaffold-spec` without a project copy. A project owns only `.spec/` (cursor, discovery, sprints, tasks, evidence) and `docs/adrs/`. Project `.dsh/skills` and `.agents/skills` still outrank the bundled copy, so a local override remains possible. OpenNjord Skills augment the selected Agent preset; they do not define a restricted preset.
+The harness owns the installation. `@deepseek-ai/dsh-treadmill` vendors the complete `.opennjord` tree, seeds an editable copy under `<dshHome>/treadmill`, registers its `skills` and `commands` directories as one global-layer filesystem Skill provider, contributes one per-agent prompt section with the rules index and tool paths, reads the stage table from `esteira/pipeline.yaml`, exposes the files through the `treadmill.*` RPC domain so the Knowledge section edits them in place, and honours the `treadmill.enabled` user setting, so every project sees `/discovery`, `/arquitetura`, `/desenvolvimento`, `/review-codigo-subagents`, `/qa`, `/qa-rpa`, `/seguranca`, `/redteam`, `/deploy`, and `/scaffold-spec` without a project copy. A project owns only `.spec/` (cursor, discovery, sprints, tasks, evidence) and `docs/adrs/`. Project `.dsh/skills` and `.agents/skills` still outrank the bundled copy, so a local override remains possible. OpenNjord Skills augment the selected Agent preset; they do not define a restricted preset.
 
 `.spec/esteira-state.yaml` remains the only cursor that decides the next stage. The Host parses a bounded current-state view and observes canonical artifact homes. The UI never maintains a competing stage status or advances the cursor through an unlogged RPC mutation.
 
@@ -26,6 +26,6 @@ Usage reports provider token fields exactly as recorded. Monetary cost requires 
 
 ## Consequences
 
-A project can install or update OpenNjord Skills independently while the Harness retains its normal Skills and tools. Session replay explains what each model saw, produced, and invoked. Cursor recovery remains compatible with command-line and Njord execution because all clients read the same project file.
+Editing the stage table changes every project's Treadmill at once without touching any project's cursor, because a cursor stores only the current stage id; a stage removed while current is reported, not lost. Disabling the Treadmill removes its skills and prompt section everywhere in one switch. Session replay explains what each model saw, produced, and invoked. Cursor recovery remains compatible with command-line and Njord execution because all clients read the same project file.
 
 The first implementation needs a Host Service Definition and filesystem Provider, API consumer, Client plugin, REAL-composition test, and keyless UI snapshot. A later executor may automate cursor transitions only by applying the same validated file transaction and receipt rules used by the installed Esteira; it must not infer transitions from UI state.

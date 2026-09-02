@@ -1,0 +1,21 @@
+# `@deepseek-ai/dsh-treadmill`
+
+This host plugin owns the OpenNjord Treadmill installation. It vendors the complete `.opennjord` tree under `assets/opennjord` (`skills`, `rules`, `commands`, `agents`, `integrations`, `tools`, and the stage table `esteira/pipeline.yaml`), seeds an editable copy into `<dshHome>/treadmill` on first use (adding new top-level entries on later boots, never overwriting an edit), and serves that copy: `skills` and `commands` become one filesystem Skill provider named `treadmill` for every project, the rules index and tool paths become one system-prompt section per agent, and the `ctx.treadmill` service reads and writes the files so the Knowledge section can edit them in place.
+
+A project keeps no `.opennjord`, `.claude`, or `.codex` copy and no symlink bridge. It owns only its execution state and decisions: `.spec/` (cursor `esteira-state.yaml`, discovery, sprints, tasks, QA and security evidence) and `docs/adrs/`. `/scaffold-spec` creates that pair; the harness supplies `/discovery`, `/arquitetura`, `/desenvolvimento`, `/review-codigo-subagents`, `/qa`, `/qa-rpa`, `/seguranca`, `/redteam`, `/deploy`, and the `commands` entries such as `/check-rules` and `/refactor`.
+
+## Model Experience
+
+The provider registers into the global layer of the skill registry, so every Agent preset sees the Treadmill skills and commands next to project, user, and bundled skills; project `.dsh/skills` and `.agents/skills` still outrank it. Each agent's system prompt gains one `treadmill:rules` section naming the installation root, listing every rule file with its heading, and pointing at `tools/spec-check.sh` and `tools/esteira-check.sh`; the model reads the rules it needs with its ordinary file tools.
+
+## Stage table
+
+`esteira/pipeline.yaml` lists the stages in execution order with `id`, `label`, `section`, `skill`, optional `args` (`sprint` receives the active sprint), `gate` (`manual` or `auto`), `verdict`, and `produces`. Editing it adds, removes, reorders, or relabels stages for every project at once. A project's cursor stores only the current stage id, so progress is unaffected: a cursor at a stage the table no longer lists is reported as such by the Treadmill view until the stage returns or the cursor advances. An invalid table is reported through `describe()` with `stages` empty and the files untouched.
+
+## Settings
+
+The `treadmill` user-settings section carries `enabled` (default from the plugin's `enabled` config, itself `true`). Off, the provider serves no skill, the prompt section is empty, and `describe()` reports the state so the Treadmill view and the Knowledge pane show it.
+
+## Known Limitations and Deferred Work
+
+`agents` and `integrations` are vendored and editable but have no harness consumer: agents need a mapping onto Agent presets, and the OpenViking kit is documentation. Updating the vendored copy is a manual copy from the canonical `esteira-skills` checkout.

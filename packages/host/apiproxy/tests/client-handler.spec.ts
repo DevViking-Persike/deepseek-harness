@@ -96,6 +96,11 @@ function scriptedApi(overrides: {
       readFile: r => ok(r, { path: r.payload.path, content: '', version: 'v1' }),
       writeFile: r => ok(r, { path: r.payload.path, version: 'v2' }),
     },
+    treadmill: {
+      describe: r => ok(r, { root: '/t', enabled: true, stages: [], files: [] }),
+      readFile: r => ok(r, { path: r.payload.path, content: '' }),
+      writeFile: r => ok(r, { path: r.payload.path }),
+    },
     git: {
       listRepositories: r => ok(r, { repositories: [], truncated: false }),
       status: r => ok(r, { root: r.payload.root, ahead: 0, behind: 0, changes: [], truncated: false }),

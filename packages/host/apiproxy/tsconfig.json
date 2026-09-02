@@ -18,7 +18,8 @@
       "path": "../../credentials/credentials"
     },
     {
-      "path": "../../docker/docker"
+      "path": "../../docker/docker" },
+    { "path": "../../treadmill/treadmill"
     },
     {
       "path": "../../git/git"

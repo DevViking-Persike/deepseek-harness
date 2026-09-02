@@ -1679,6 +1679,12 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
     details: {},
   }
 
+  const treadmillUnavailable = {
+    code: 'treadmill-unavailable' as const,
+    message: 'fixture composition mounts no Treadmill installation',
+    details: {},
+  }
+
   const editorUnavailable = {
     code: 'editor-unavailable' as const,
     message: 'fixture composition mounts no filesystem seam',
@@ -2911,6 +2917,12 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       readFile: request => err(request, editorUnavailable),
       writeFile: request => err(request, editorUnavailable),
     },
+    treadmill: {
+      // The fixture mounts no host-owned installation either.
+      describe: request => err(request, treadmillUnavailable),
+      readFile: request => err(request, treadmillUnavailable),
+      writeFile: request => err(request, treadmillUnavailable),
+    },
     git: {
       // The fixture composition mounts no Git seam, so every row answers the
       // same empty state a real host without a provider answers.
@@ -3276,6 +3288,9 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'editor.listDir': return this.api.editor.listDir(request, signal)
       case 'editor.readFile': return this.api.editor.readFile(request, signal)
       case 'editor.writeFile': return this.api.editor.writeFile(request, signal)
+      case 'treadmill.describe': return this.api.treadmill.describe(request, signal)
+      case 'treadmill.readFile': return this.api.treadmill.readFile(request, signal)
+      case 'treadmill.writeFile': return this.api.treadmill.writeFile(request, signal)
       case 'git.listRepositories': return this.api.git.listRepositories(request, signal)
       case 'git.status': return this.api.git.status(request, signal)
       case 'git.worktrees': return this.api.git.worktrees(request, signal)

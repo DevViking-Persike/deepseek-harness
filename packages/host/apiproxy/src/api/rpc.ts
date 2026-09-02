@@ -93,6 +93,12 @@ export interface RpcErrorDetailsMap {
    * same file. The save is refused so the concurrent edit is never clobbered.
    */
   'editor-stale': {}
+  /** No Treadmill service is composed. */
+  'treadmill-unavailable': {}
+  /** The path resolves outside the Treadmill installation root. */
+  'treadmill-denied': {}
+  /** The requested installation file does not exist. */
+  'treadmill-not-found': {}
   /**
    * No Git backend is usable: the composition mounts no Git seam, or the seam
    * has no usable provider, several usable providers with none pinned, or a
