@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { RpcId, transportError } from '../src/api/rpc.ts'
+import { MessageId } from '@deepseek-ai/dsh-llm'
+import { RpcId, transportError, type RpcErrorDetailsMap } from '../src/api/rpc.ts'
 import {
   clientRequestSchema, clientResponseSchema, rpcErrorSchema, rpcIdSchema, rpcMessageSchema,
   rpcReceiptSchema, rpcResultSchema, serverRequestSchema, serverResponseSchema,
@@ -80,6 +81,69 @@ describe('rpcErrorSchema', () => {
     // The credentials producer still emits this code, so the branch has to stay.
     expect(rpcErrorSchema.parse({ code: 'credential-rejected', message: 'm', details: { ref: 'r' } }).code).toBe('credential-rejected')
     expect(rpcErrorSchema.parse({ code: 'internal', message: 'm', details: {} }).code).toBe('internal')
+  })
+
+  it('carries one schema branch for every RpcErrorDetailsMap row', () => {
+    // Completeness is compile-checked: a new row in RpcErrorDetailsMap without an
+    // entry here fails typecheck, and an entry without a schema branch fails below.
+    const details: { [Code in keyof RpcErrorDetailsMap]: RpcErrorDetailsMap[Code] } = {
+      'bad-request': { issues: [] },
+      'cancelled': {},
+      'session-not-found': { sessionId: sessionIdSchema.parse('s') },
+      'model-unavailable': { provider: 'p', model: 'm' },
+      'session-conflict': { sessionId: sessionIdSchema.parse('s'), requestedCwd: '/a' },
+      'invalid-time-zone': { value: 'CST' },
+      'workspace-attach-failed': { sessionId: sessionIdSchema.parse('s'), workspaceId: 'w' },
+      'workspace-not-found': { workspaceId: 'w' },
+      'workspace-invalid-path': { path: '/x' },
+      'workspace-name-conflict': { name: 'x' },
+      'workspace-move-invalid': { workspaceId: 'w', sessionId: sessionIdSchema.parse('s') },
+      'directory-unreadable': { path: '/x' },
+      'directory-exists': { path: '/x' },
+      'directory-create-failed': { path: '/x' },
+      'directory-picker-unavailable': { capability: 'c' },
+      'agent-preset-read-only': { agentPreset: 'a', reason: 'r' },
+      'agent-preset-locked': { sessionId: sessionIdSchema.parse('s'), agentPreset: 'a' },
+      'agent-preset-conflict': { sessionId: sessionIdSchema.parse('s'), requestedPreset: 'a' },
+      'agent-preset-not-found': { agentPreset: 'a', available: [] },
+      'agent-preset-invalid': { agentPreset: 'a', reason: 'r' },
+      'agent-busy': { reason: 'r' },
+      'attachment-error': { reason: 'r' },
+      'queue-item-not-found': { itemId: MessageId('i') },
+      'steer-unavailable': { itemId: MessageId('i') },
+      'command-error': {},
+      'unknown-command': {},
+      'settings-rejected': { ns: 'n' },
+      'settings-conflict': { ns: 'n', expected: 1, actual: 2 },
+      'credential-rejected': { ref: 'r' },
+      'docker-unavailable': {},
+      'editor-unavailable': {},
+      'editor-denied': {},
+      'editor-not-found': {},
+      'editor-not-text': {},
+      'editor-too-large': {},
+      'editor-stale': {},
+      'git-unavailable': {},
+      'git-denied': {},
+      'git-not-found': {},
+      'git-conflicted': {},
+      'git-nothing-staged': {},
+      'git-failed': {},
+      'compose-failed': {},
+      'model-discovery-failed': { settingsNs: 'n' },
+      'title-invalid': { sessionId: sessionIdSchema.parse('s') },
+      'fork-unavailable': { sessionId: sessionIdSchema.parse('s') },
+      'subagent-parent-unavailable': { parentSessionId: sessionIdSchema.parse('p') },
+      'subagent-not-found': { parentSessionId: sessionIdSchema.parse('p'), childSessionId: sessionIdSchema.parse('c') },
+      'subagent-catalog-diagnostic': { parentSessionId: sessionIdSchema.parse('p'), childSessionId: sessionIdSchema.parse('c'), reason: 'corrupt' },
+      'subagent-not-resumable': { childSessionId: sessionIdSchema.parse('c') },
+      'subagent-unauthorized': { childSessionId: sessionIdSchema.parse('c') },
+      'subagent-delivery-unavailable': { childSessionId: sessionIdSchema.parse('c') },
+      'internal': {},
+    }
+    for (const [code, body] of Object.entries(details)) {
+      expect(rpcErrorSchema.safeParse({ code, message: 'm', details: body }), code).toMatchObject({ success: true })
+    }
   })
 
   it('rejects a known code with missing details', () => {
