@@ -1,0 +1,22 @@
+{
+  "name": "@deepseek-ai/dsh-desktop",
+  "description": "Electron desktop shell for the DeepSeek Harness Web profile",
+  "version": "0.1.0-rc.8",
+  "private": true,
+  "type": "module",
+  "main": "lib/src/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "pnpm run build && electron .",
+    "test": "vitest run --root ../.. apps/desktop/tests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@electron/packager": "^19.0.1",
+    "electron": "44.1.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}
