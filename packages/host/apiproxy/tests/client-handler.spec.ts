@@ -100,7 +100,7 @@ function scriptedApi(overrides: {
       describe: r => ok(r, { root: '/t', enabled: true, tableSource: 'global', stages: [], files: [] }),
       readFile: r => ok(r, { path: r.payload.path, content: '' }),
       writeFile: r => ok(r, { path: r.payload.path }),
-      setStageEnabled: r => ok(r, { id: r.payload.id, enabled: r.payload.enabled, tableSource: 'global' }),
+      updateStage: r => ok(r, { id: r.payload.id, tableSource: 'global' }),
       saveToProject: r => ok(r, { path: r.payload.path }),
     },
     git: {

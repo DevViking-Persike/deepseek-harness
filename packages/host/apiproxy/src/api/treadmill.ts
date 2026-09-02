@@ -59,15 +59,16 @@ export interface TreadmillApi {
    */
   writeFile(request: RpcRequest<{ path: string; content: string }>, signal: AbortSignal): Promise<RpcResponse<{ path: string }>>
   /**
-   * Switch one stage on or off, keeping the table's comments. With a
-   * `sessionId`, the session's project table is edited and created from the
-   * effective table when absent; without one, the harness default table is.
-   * Fails with `treadmill-not-found` for an id the table does not list.
+   * Update one stage's switches (`enabled`, `gate`), keeping the table's
+   * comments. With a `sessionId`, the session's project table is edited and
+   * created from the effective table when absent; without one, the harness
+   * default table is. Fails with `treadmill-not-found` for an id the table
+   * does not list.
    */
-  setStageEnabled(
-    request: RpcRequest<{ sessionId?: string; id: string; enabled: boolean }>,
+  updateStage(
+    request: RpcRequest<{ sessionId?: string; id: string; enabled?: boolean; gate?: 'manual' | 'auto' }>,
     signal: AbortSignal,
-  ): Promise<RpcResponse<{ id: string; enabled: boolean; tableSource: 'project' | 'global' }>>
+  ): Promise<RpcResponse<{ id: string; tableSource: 'project' | 'global' }>>
   /**
    * Save one skill or command into the session's project under `.dsh/skills`,
    * where it outranks the harness copy for that project alone. Fails with

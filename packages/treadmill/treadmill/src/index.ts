@@ -152,23 +152,30 @@ export function parsePipeline(text: string): TreadmillStage[] {
   })
 }
 
+/** The switches of one stage a client may flip without editing the table by hand. */
+export interface StagePatch {
+  readonly enabled?: boolean
+  readonly gate?: 'manual' | 'auto'
+}
+
 /**
- * Switch one stage on or off in a stage table's YAML text, keeping comments
+ * Update one stage's switches in a stage table's YAML text, keeping comments
  * and layout. Shared by the harness default table and a project's own copy.
  * @param text - `pipeline.yaml` or `.spec/treadmill.yaml` content.
  * @param id - stage id as the table lists it.
- * @param enabled - the new state.
+ * @param patch - the switches to set; an absent field keeps its value.
  * @returns the rewritten YAML.
  * @throws TreadmillError `not-found` when the table lists no such stage.
  */
-export function setStageEnabledInTable(text: string, id: string, enabled: boolean): string {
+export function updateStageInTable(text: string, id: string, patch: StagePatch): string {
   const document = parseDocument(text)
   const stages = document.get('stages')
   const stage = isSeq(stages)
     ? stages.items.find(item => isMap(item) && String(item.get('id')) === id)
     : undefined
   if (stage === undefined || !isMap(stage)) throw new TreadmillError('not-found', `stage "${id}" is not in the stage table`)
-  stage.set('enabled', enabled)
+  if (patch.enabled !== undefined) stage.set('enabled', patch.enabled)
+  if (patch.gate !== undefined) stage.set('gate', patch.gate)
   return document.toString()
 }
 
@@ -318,14 +325,14 @@ export class TreadmillService extends Service {
   }
 
   /**
-   * Switch one stage on or off in `esteira/pipeline.yaml`, keeping the file's
-   * comments and layout. A disabled stage stays listed and is skipped by the
-   * Treadmill view and the stage prompts.
+   * Update one stage's switches in `esteira/pipeline.yaml`, keeping the file's
+   * comments and layout. A disabled stage stays listed and is skipped; a
+   * `manual` gate waits for the run action, an `auto` gate follows through.
    * @param id - stage id as the table lists it.
-   * @param enabled - the new state.
+   * @param patch - the switches to set.
    */
-  async setStageEnabled(id: string, enabled: boolean): Promise<void> {
-    await this.writeFile(PIPELINE_FILE, setStageEnabledInTable(await this.readFile(PIPELINE_FILE), id, enabled))
+  async updateStage(id: string, patch: StagePatch): Promise<void> {
+    await this.writeFile(PIPELINE_FILE, updateStageInTable(await this.readFile(PIPELINE_FILE), id, patch))
   }
 
   /**

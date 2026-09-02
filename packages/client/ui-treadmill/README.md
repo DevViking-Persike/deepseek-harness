@@ -4,6 +4,10 @@ This browser plugin adds an Esteira conversation view after Docker. It reads the
 
 The view does not own cursor transitions. `.spec/esteira-state.yaml` remains authoritative, while the stage table and the stage methods come from the Treadmill installation `@deepseek-ai/dsh-treadmill` serves (`treadmill.describe`); a disabled Treadmill shows one notice instead of the graph. A project without a cursor gets one **Install the Treadmill in this project** action, which submits `/scaffold-spec criar` constrained to create only `.spec/` and `docs/adrs/`.
 
+## Follow-through
+
+A stage's `gate` decides what happens after the previous stage ends: `auto` stages run by themselves, `manual` stages wait for the run action. The plugin watches every session it started a stage in; when the run ends, the cursor moved, the next enabled stage is `auto`, and no error verdict stands, it submits that stage's prompt without a click. The header toggle **Follow-through** switches this per session (on by default), and the stage panel's second switch flips a stage between automatic and manual, writing the project's table.
+
 ## Stage switches
 
 The selected-stage panel carries an **enabled** switch. Turning a stage off writes the project's `.spec/treadmill.yaml` (created from the effective table on the first switch), shows the stage as skipped, and makes the run action jump to the next enabled stage when the cursor sits on a disabled one. The header names whether the table is the project's own or the harness default.

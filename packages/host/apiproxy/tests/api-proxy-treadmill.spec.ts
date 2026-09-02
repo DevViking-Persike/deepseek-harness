@@ -96,15 +96,15 @@ describe('treadmill.readFile and treadmill.writeFile', () => {
   })
 })
 
-describe('treadmill.setStageEnabled', () => {
+describe('treadmill.updateStage', () => {
   it('edits the harness default table without a session', async () => {
     const { api } = await harness(true)
-    const response = await api.treadmill.setStageEnabled(request({ id: 'deploy', enabled: false }), signal())
-    expect(response.result).toMatchObject({ ok: true, value: { id: 'deploy', enabled: false, tableSource: 'global' } })
+    const response = await api.treadmill.updateStage(request({ id: 'deploy', enabled: false }), signal())
+    expect(response.result).toMatchObject({ ok: true, value: { id: 'deploy', tableSource: 'global' } })
     const after = await api.treadmill.describe(request({}), signal())
     if (!after.result.ok) throw new Error('describe failed')
     expect(after.result.value.stages.find(stage => stage.id === 'deploy')?.enabled).toBe(false)
-    expect((await api.treadmill.setStageEnabled(request({ id: 'nope', enabled: true }), signal())).result)
+    expect((await api.treadmill.updateStage(request({ id: 'nope', enabled: true }), signal())).result)
       .toMatchObject({ ok: false, error: { code: 'treadmill-not-found' } })
   })
 
@@ -113,8 +113,8 @@ describe('treadmill.setStageEnabled', () => {
     const before = await api.treadmill.describe(request({ sessionId: 's-project' }), signal())
     if (!before.result.ok) throw new Error('describe failed')
     expect(before.result.value.tableSource).toBe('global')
-    const response = await api.treadmill.setStageEnabled(request({ sessionId: 's-project', id: '40-redteam', enabled: false }), signal())
-    expect(response.result).toMatchObject({ ok: true, value: { id: '40-redteam', enabled: false, tableSource: 'project' } })
+    const response = await api.treadmill.updateStage(request({ sessionId: 's-project', id: '40-redteam', enabled: false }), signal())
+    expect(response.result).toMatchObject({ ok: true, value: { id: '40-redteam', tableSource: 'project' } })
     const table = readFileSync(join(project, '.spec/treadmill.yaml'), 'utf8')
     expect(table).toContain('# pipeline.yaml')
     const after = await api.treadmill.describe(request({ sessionId: 's-project' }), signal())
@@ -126,10 +126,11 @@ describe('treadmill.setStageEnabled', () => {
     if (!global.result.ok) throw new Error('describe failed')
     expect(global.result.value.stages.find(stage => stage.id === '40-redteam')?.enabled).toBe(true)
     // A second switch edits the project table in place.
-    await api.treadmill.setStageEnabled(request({ sessionId: 's-project', id: 'deploy', enabled: false }), signal())
+    await api.treadmill.updateStage(request({ sessionId: 's-project', id: 'deploy', enabled: false, gate: 'auto' }), signal())
     const again = await api.treadmill.describe(request({ sessionId: 's-project' }), signal())
     if (!again.result.ok) throw new Error('describe failed')
     expect(again.result.value.stages.filter(stage => !stage.enabled).map(stage => stage.id).sort()).toEqual(['40-redteam', 'commit-push', 'deploy'])
+    expect(again.result.value.stages.find(stage => stage.id === 'deploy')?.gate).toBe('auto')
   })
 
   it('reports a broken project table without touching the harness default', async () => {
@@ -157,7 +158,7 @@ describe('treadmill.saveToProject', () => {
     const absent = await harness(false)
     expect((await absent.api.treadmill.saveToProject(request({ sessionId: 's', path: 'skills/a/SKILL.md', content: '' }), signal())).result)
       .toMatchObject({ ok: false, error: { code: 'treadmill-unavailable' } })
-    expect((await absent.api.treadmill.setStageEnabled(request({ id: 'a', enabled: true }), signal())).result)
+    expect((await absent.api.treadmill.updateStage(request({ id: 'a', enabled: true }), signal())).result)
       .toMatchObject({ ok: false, error: { code: 'treadmill-unavailable' } })
   })
 })

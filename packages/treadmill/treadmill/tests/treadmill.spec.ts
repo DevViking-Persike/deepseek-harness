@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SkillRegistry from '@deepseek-ai/dsh-skill'
-import Treadmill, { parsePipeline, PIPELINE_FILE, setStageEnabledInTable, TreadmillError, TREADMILL_ASSETS } from '../src/index.ts'
+import Treadmill, { parsePipeline, PIPELINE_FILE, TreadmillError, TREADMILL_ASSETS, updateStageInTable } from '../src/index.ts'
 import * as Invariant from '../src/invariant.ts'
 
 const TREADMILL_SKILLS = [
@@ -100,17 +100,18 @@ describe('dsh-treadmill plugin', () => {
   })
 })
 
-describe('setStageEnabledInTable', () => {
+describe('updateStageInTable', () => {
   it('flips one stage while keeping comments and the other stages', async () => {
     const root = join(await mkdtemp(join(tmpdir(), 'dsh-treadmill-')), 'install')
     const ctx = await boot(root)
     const before = await ctx.treadmill.readFile(PIPELINE_FILE)
-    const after = setStageEnabledInTable(before, 'deploy', false)
+    const after = updateStageInTable(before, 'deploy', { enabled: false })
+    expect(parsePipeline(updateStageInTable(before, '20', { gate: 'manual' })).find(stage => stage.id === '20')?.gate).toBe('manual')
     expect(after).toContain('# pipeline.yaml')
     expect(parsePipeline(after).find(stage => stage.id === 'deploy')?.enabled).toBe(false)
     expect(parsePipeline(after).filter(stage => stage.enabled).length).toBe(parsePipeline(before).filter(stage => stage.enabled).length - 1)
-    expect(() => setStageEnabledInTable(before, 'nope', true)).toThrow(TreadmillError)
-    await ctx.treadmill.setStageEnabled('commit-push', true)
+    expect(() => updateStageInTable(before, 'nope', { enabled: true })).toThrow(TreadmillError)
+    await ctx.treadmill.updateStage('commit-push', { enabled: true })
     expect((await ctx.treadmill.stages()).stages.find(stage => stage.id === 'commit-push')?.enabled).toBe(true)
   })
 })

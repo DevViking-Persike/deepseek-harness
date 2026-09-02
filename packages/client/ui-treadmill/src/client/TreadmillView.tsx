@@ -28,8 +28,10 @@ export interface TreadmillViewInjected {
   installTreadmill: (sessionId: SessionId) => Promise<void>
   /** Read the harness-owned installation: enabled state and stage table. */
   loadInstallation: (signal: AbortSignal) => Promise<TreadmillInstallation>
-  /** Switch one stage on or off in the installation's stage table. */
-  setStageEnabled: (id: string, enabled: boolean) => Promise<void>
+  /** Update one stage's switches in the project's (or the harness default) stage table. */
+  updateStage: (id: string, patch: { enabled?: boolean; gate?: 'manual' | 'auto' }) => Promise<void>
+  /** Follow-through for this session: automatic stages chain without the run action. */
+  followThrough: { get: () => boolean; set: (enabled: boolean) => void }
 }
 type Props = ConvViewProps & PropsLocale<'treadmill'> & InjectFace<TreadmillViewInjected>
 
@@ -53,8 +55,9 @@ function sectionLabel(stage: StageSpec, t: Props['t']): string {
  * @returns the view.
  */
 export function TreadmillView({
-  sessionId, useSession, useProjection, loadCursor, runStage, installTreadmill, loadInstallation, setStageEnabled, t,
+  sessionId, useSession, useProjection, loadCursor, runStage, installTreadmill, loadInstallation, updateStage, followThrough, t,
 }: Props) {
+  const [following, setFollowing] = useState(followThrough.get())
   const [installationGeneration, setInstallationGeneration] = useState(0)
   const session = useSession(snapshot => snapshot)
   const usage = useProjection('tokenUsage')
@@ -117,9 +120,9 @@ export function TreadmillView({
       .catch((reason: unknown) => { setRunError(describe(reason)) })
       .finally(() => { setBusy(false) })
   }
-  const toggleStage = (stage: StageView, enabled: boolean) => {
+  const toggleStage = (stage: StageView, patch: { enabled?: boolean; gate?: 'manual' | 'auto' }) => {
     setRunError(undefined)
-    void setStageEnabled(stage.id, enabled)
+    void updateStage(stage.id, patch)
       .then(() => { setInstallationGeneration(value => value + 1) })
       .catch((reason: unknown) => { setRunError(describe(reason)) })
   }
@@ -139,6 +142,15 @@ export function TreadmillView({
               <p className={css.meta}>{t(`table.${installation.tableSource}`)}</p>
             </div>
             <div className={css.actions}>
+              <button
+                type="button"
+                className={css.ghost}
+                data-active={following}
+                title={t('followHint')}
+                onClick={() => { followThrough.set(!following); setFollowing(!following) }}
+              >
+                {following ? t('followOn') : t('followOff')}
+              </button>
               <button
                 type="button"
                 className={css.primary}
@@ -188,7 +200,7 @@ export function TreadmillView({
             busy={busy || session.running}
             t={t}
             onRun={() => { execute(selected) }}
-            onToggle={(enabled) => { toggleStage(selected, enabled) }}
+            onToggle={(patch) => { toggleStage(selected, patch) }}
             onClose={() => { setSelectedId(null) }}
           />
         )}
@@ -251,7 +263,7 @@ interface StagePanelProps {
   busy: boolean
   t: Props['t']
   onRun: () => void
-  onToggle: (enabled: boolean) => void
+  onToggle: (patch: { enabled?: boolean; gate?: 'manual' | 'auto' }) => void
   onClose: () => void
 }
 
@@ -285,8 +297,12 @@ function StagePanel({ stage, cursor, busy, t, onRun, onToggle, onClose }: StageP
         </div>
       </dl>
       <label className={css.toggle}>
-        <input type="checkbox" checked={stage.enabled !== false} onChange={(event) => { onToggle(event.target.checked) }} />
+        <input type="checkbox" checked={stage.enabled !== false} onChange={(event) => { onToggle({ enabled: event.target.checked }) }} />
         {stage.enabled === false ? t('stageDisabled') : t('stageEnabled')}
+      </label>
+      <label className={css.toggle}>
+        <input type="checkbox" checked={stage.gate === 'auto'} onChange={(event) => { onToggle({ gate: event.target.checked ? 'auto' : 'manual' }) }} />
+        {stage.gate === 'auto' ? t('gateAutoHint') : t('gateManualHint')}
       </label>
       <button type="button" className={css.ghost} disabled={busy || stage.enabled === false} onClick={onRun}>
         {busy ? t('running') : t('runStage')}

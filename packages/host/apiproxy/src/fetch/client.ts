@@ -45,7 +45,7 @@ import {
   editorLanguageServersValueSchema, editorListDirValueSchema, editorReadFileValueSchema, editorWriteFileValueSchema,
 } from '../api/editor.schema.ts'
 import {
-  treadmillDescribeValueSchema, treadmillReadFileValueSchema, treadmillSaveToProjectValueSchema, treadmillSetStageEnabledValueSchema,
+  treadmillDescribeValueSchema, treadmillReadFileValueSchema, treadmillSaveToProjectValueSchema, treadmillUpdateStageValueSchema,
   treadmillWriteFileValueSchema,
 } from '../api/treadmill.schema.ts'
 import {
@@ -167,7 +167,7 @@ export interface IApiClient {
     describe(payload: RequestPayload<'treadmill.describe'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'treadmill.describe'>>>
     readFile(payload: RequestPayload<'treadmill.readFile'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'treadmill.readFile'>>>
     writeFile(payload: RequestPayload<'treadmill.writeFile'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'treadmill.writeFile'>>>
-    setStageEnabled(payload: RequestPayload<'treadmill.setStageEnabled'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'treadmill.setStageEnabled'>>>
+    updateStage(payload: RequestPayload<'treadmill.updateStage'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'treadmill.updateStage'>>>
     saveToProject(payload: RequestPayload<'treadmill.saveToProject'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'treadmill.saveToProject'>>>
   }
   docker: {
@@ -264,7 +264,7 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'treadmill.describe': treadmillDescribeValueSchema,
   'treadmill.readFile': treadmillReadFileValueSchema,
   'treadmill.writeFile': treadmillWriteFileValueSchema,
-  'treadmill.setStageEnabled': treadmillSetStageEnabledValueSchema,
+  'treadmill.updateStage': treadmillUpdateStageValueSchema,
   'treadmill.saveToProject': treadmillSaveToProjectValueSchema,
   'git.listRepositories': gitListRepositoriesValueSchema,
   'git.status': gitStatusValueSchema,
@@ -572,7 +572,7 @@ export abstract class AbstractApiClient implements IApiClient {
     describe: (payload, signal) => this.callUnary('treadmill.describe', payload, signal),
     readFile: (payload, signal) => this.callUnary('treadmill.readFile', payload, signal),
     writeFile: (payload, signal) => this.callUnary('treadmill.writeFile', payload, signal),
-    setStageEnabled: (payload, signal) => this.callUnary('treadmill.setStageEnabled', payload, signal),
+    updateStage: (payload, signal) => this.callUnary('treadmill.updateStage', payload, signal),
     saveToProject: (payload, signal) => this.callUnary('treadmill.saveToProject', payload, signal),
   }
 

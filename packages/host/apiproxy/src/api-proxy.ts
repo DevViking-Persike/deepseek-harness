@@ -87,7 +87,7 @@ import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 // Value edge: the docker domain narrows the seam's provider-selection failures
 // onto one wire code; the import also resolves `ctx.get('docker')`.
 import { DockerError } from '@deepseek-ai/dsh-docker'
-import { parsePipeline, PIPELINE_FILE, setStageEnabledInTable, TreadmillError } from '@deepseek-ai/dsh-treadmill'
+import { parsePipeline, PIPELINE_FILE, TreadmillError, updateStageInTable } from '@deepseek-ai/dsh-treadmill'
 import type { DockerContainer, DockerImage } from '@deepseek-ai/dsh-docker'
 // Value edge: the git domain narrows the seam's provider-selection and
 // repository failures onto its own wire codes; the import also resolves
@@ -3850,14 +3850,15 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           return err(request, treadmillError(error))
         }
       },
-      async setStageEnabled(request, signal) {
+      async updateStage(request, signal) {
         const treadmill = ctx.get('treadmill')
         if (treadmill === undefined) return err(request, treadmillAbsent())
-        const { sessionId, id, enabled } = request.payload
+        const { sessionId, id, enabled, gate } = request.payload
+        const patch = { ...enabled === undefined ? {} : { enabled }, ...gate === undefined ? {} : { gate } }
         try {
           if (sessionId === undefined) {
-            await treadmill.setStageEnabled(id, enabled)
-            return ok(request, { id, enabled, tableSource: 'global' })
+            await treadmill.updateStage(id, patch)
+            return ok(request, { id, tableSource: 'global' })
           }
           // The project's own table starts as a copy of the effective table,
           // so the first switch records every stage, not just the one flipped.
@@ -3867,8 +3868,8 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           const text = project?.text ?? await treadmill.readFile(PIPELINE_FILE)
           const target = project?.target
             ?? await editorTarget(fs, await editorRoot(ctx, fs, await sessionCwd(sessionId), signal), PROJECT_TABLE, signal)
-          await fs.writeText(target, setStageEnabledInTable(text, id, enabled), undefined, signal, editorPolicy(ctx, sessionId))
-          return ok(request, { id, enabled, tableSource: 'project' })
+          await fs.writeText(target, updateStageInTable(text, id, patch), undefined, signal, editorPolicy(ctx, sessionId))
+          return ok(request, { id, tableSource: 'project' })
         } catch (error: unknown) {
           return err(request, treadmillError(error))
         }

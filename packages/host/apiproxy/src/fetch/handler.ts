@@ -49,7 +49,7 @@ import {
 } from '../api/editor.schema.ts'
 import {
   treadmillDescribeRequestSchema, treadmillReadFileRequestSchema, treadmillSaveToProjectRequestSchema,
-  treadmillSetStageEnabledRequestSchema, treadmillWriteFileRequestSchema,
+  treadmillUpdateStageRequestSchema, treadmillWriteFileRequestSchema,
 } from '../api/treadmill.schema.ts'
 import {
   gitCommitRequestSchema, gitDiffRequestSchema, gitDiscardRequestSchema,
@@ -144,7 +144,7 @@ const UNARY_ROUTES: UnaryRoutes = {
   'treadmill.describe': { schema: treadmillDescribeRequestSchema, invoke: (api, r, signal) => api.treadmill.describe(r, signal) },
   'treadmill.readFile': { schema: treadmillReadFileRequestSchema, invoke: (api, r, signal) => api.treadmill.readFile(r, signal) },
   'treadmill.writeFile': { schema: treadmillWriteFileRequestSchema, invoke: (api, r, signal) => api.treadmill.writeFile(r, signal) },
-  'treadmill.setStageEnabled': { schema: treadmillSetStageEnabledRequestSchema, invoke: (api, r, signal) => api.treadmill.setStageEnabled(r, signal) },
+  'treadmill.updateStage': { schema: treadmillUpdateStageRequestSchema, invoke: (api, r, signal) => api.treadmill.updateStage(r, signal) },
   'treadmill.saveToProject': { schema: treadmillSaveToProjectRequestSchema, invoke: (api, r, signal) => api.treadmill.saveToProject(r, signal) },
   'git.listRepositories': { schema: gitListRepositoriesRequestSchema, invoke: (api, r, signal) => api.git.listRepositories(r, signal) },
   'git.status': { schema: gitStatusRequestSchema, invoke: (api, r, signal) => api.git.status(r, signal) },

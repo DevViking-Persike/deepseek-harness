@@ -54,19 +54,19 @@ export const treadmillWriteFileValueSchema = z.object({
   path: z.string(),
 }) satisfies z.ZodType<Wire<ResponseValue<'treadmill.writeFile'>>>
 
-/** treadmill.setStageEnabled request payload. */
-export const treadmillSetStageEnabledRequestSchema = z.object({
+/** treadmill.updateStage request payload; an absent switch keeps its value. */
+export const treadmillUpdateStageRequestSchema = z.object({
   sessionId: z.string().optional(),
   id: z.string().min(1),
-  enabled: z.boolean(),
-}) satisfies z.ZodType<Wire<RequestPayload<'treadmill.setStageEnabled'>>>
+  enabled: z.boolean().optional(),
+  gate: z.union([z.literal('manual'), z.literal('auto')]).optional(),
+}) satisfies z.ZodType<Wire<RequestPayload<'treadmill.updateStage'>>>
 
-/** treadmill.setStageEnabled response value. */
-export const treadmillSetStageEnabledValueSchema = z.object({
+/** treadmill.updateStage response value. */
+export const treadmillUpdateStageValueSchema = z.object({
   id: z.string(),
-  enabled: z.boolean(),
   tableSource: z.union([z.literal('project'), z.literal('global')]),
-}) satisfies z.ZodType<Wire<ResponseValue<'treadmill.setStageEnabled'>>>
+}) satisfies z.ZodType<Wire<ResponseValue<'treadmill.updateStage'>>>
 
 /** treadmill.saveToProject request payload. */
 export const treadmillSaveToProjectRequestSchema = z.object({

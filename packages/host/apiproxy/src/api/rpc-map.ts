@@ -62,7 +62,7 @@ export interface RpcMethodMap {
   'treadmill.describe': TreadmillApi['describe']
   'treadmill.readFile': TreadmillApi['readFile']
   'treadmill.writeFile': TreadmillApi['writeFile']
-  'treadmill.setStageEnabled': TreadmillApi['setStageEnabled']
+  'treadmill.updateStage': TreadmillApi['updateStage']
   'treadmill.saveToProject': TreadmillApi['saveToProject']
   'git.listRepositories': GitApi['listRepositories']
   'git.status': GitApi['status']

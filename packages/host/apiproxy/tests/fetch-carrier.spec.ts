@@ -252,8 +252,8 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
       async writeFile(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path } } }
       },
-      async setStageEnabled(request) {
-        return { rpcId: request.rpcId, result: { ok: true, value: { id: request.payload.id, enabled: request.payload.enabled, tableSource: 'global' } } }
+      async updateStage(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { id: request.payload.id, tableSource: 'global' } } }
       },
       async saveToProject(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path } } }

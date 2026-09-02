@@ -2922,7 +2922,7 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       describe: request => err(request, treadmillUnavailable),
       readFile: request => err(request, treadmillUnavailable),
       writeFile: request => err(request, treadmillUnavailable),
-      setStageEnabled: request => err(request, treadmillUnavailable),
+      updateStage: request => err(request, treadmillUnavailable),
       saveToProject: request => err(request, treadmillUnavailable),
     },
     git: {
@@ -3293,7 +3293,7 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'treadmill.describe': return this.api.treadmill.describe(request, signal)
       case 'treadmill.readFile': return this.api.treadmill.readFile(request, signal)
       case 'treadmill.writeFile': return this.api.treadmill.writeFile(request, signal)
-      case 'treadmill.setStageEnabled': return this.api.treadmill.setStageEnabled(request, signal)
+      case 'treadmill.updateStage': return this.api.treadmill.updateStage(request, signal)
       case 'treadmill.saveToProject': return this.api.treadmill.saveToProject(request, signal)
       case 'git.listRepositories': return this.api.git.listRepositories(request, signal)
       case 'git.status': return this.api.git.status(request, signal)
