@@ -36,6 +36,7 @@ import type { InputTriggerServiceContract, InputTriggerSource } from '@deepseek-
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { SkillRow } from './SkillRow.tsx'
+import { ArchifySeat } from './ArchifySeat.tsx'
 import { en, NS, zh, type SkillKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -69,6 +70,27 @@ export function apply(ctx: ClientContext): void {
 
   const skills = (ctx.get('connection') as ConnectionHandle).api.skills
   const sessions = ctx.get('sessions') as ISessions
+  ctx.slots.inject('conversation.input.left', () => ctx.slots.register({
+    name: 'conversation.input.left',
+    id: 'archify',
+    order: 10,
+    locale: NS,
+    inject: () => ({
+      generate: async (sessionId: SessionId) => {
+        const binding = sessions.binding(sessionId)
+        if (binding === undefined) throw new Error('the current session is not materialized')
+        const request = [
+          '/archify',
+          'Analise este repositório e gere uma documentação de arquitetura atualizada.',
+          'Salve os artefatos persistentes em docs/architecture/generated/.',
+          'Inclua um HTML navegável, um SVG editável e um Markdown que explique componentes, fluxos e arquivos-fonte usados como evidência.',
+          'Valide todos os arquivos gerados antes de concluir.',
+        ].join(' ')
+        const result = await binding.session.prompt([{ type: 'text', text: request }], 'queue')
+        if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
+      },
+    }),
+  }, ArchifySeat))
   // Session-keyed catalog cache; single-flight per key. Plugin-closure state:
   // the fiber effect below is its teardown boundary.
   const fetches = new Map<SessionId, CatalogFetch>()
