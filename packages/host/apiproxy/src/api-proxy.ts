@@ -1402,18 +1402,16 @@ function editorPolicy(ctx: Context, sessionId: string | undefined): SandboxExecu
  *
  * @param ctx - host context carrying the session and sandbox-policy services.
  * @param fs - the filesystem seam.
- * @param sessionId - the addressed session, when the client named one.
+ * @param cwd - the addressed session's project directory, when the client named a session that records one.
  * @param signal - cancellation for the resolution.
  * @returns the resolved root target.
  */
 async function editorRoot(
   ctx: Context,
   fs: FileSystem,
-  sessionId: string | undefined,
+  cwd: string | undefined,
   signal: AbortSignal,
 ): Promise<FsTarget> {
-  const session = sessionId === undefined ? undefined : ctx.sessions.get(sessionId as SessionId)
-  const cwd = session?.header.cwd
   if (cwd !== undefined && cwd !== '') return fs.resolve(cwd, { signal })
   const policy = ctx.get('sandboxPolicy')?.resolve({})
   return fs.resolve(policy?.workspaceRoot ?? process.cwd(), { signal })
@@ -1529,7 +1527,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   ): Promise<{ target: FsTarget; text: string } | undefined> => {
     const fs = ctx.get('fs')
     if (sessionId === undefined || fs === undefined) return undefined
-    const target = await editorTarget(fs, await editorRoot(ctx, fs, sessionId, signal), PROJECT_TABLE, signal)
+    const target = await editorTarget(fs, await editorRoot(ctx, fs, await sessionCwd(sessionId), signal), PROJECT_TABLE, signal)
     try {
       return { target, text: await fs.readText(target, signal) }
     } catch (error: unknown) {
@@ -1921,6 +1919,24 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     id: SessionId
     header: SessionHeader
     events: SessionEvent[]
+  }
+
+  /**
+   * The project directory a session address records, whether the session is
+   * attached or still cold on disk; `undefined` without a session, for an
+   * unknown one, or for a pre-project header.
+   */
+  async function sessionCwd(sessionId: string | undefined): Promise<string | undefined> {
+    if (sessionId === undefined) return undefined
+    const attached = ctx.sessions.get(sessionId as SessionId)
+    if (attached !== undefined) return attached.header.cwd
+    try {
+      return (await inspectServable(sessionId as SessionId)).meta.cwd
+    } catch {
+      // An unknown or unreadable session keeps the deployment-root fallback
+      // the editor always had; the caller's own path checks still apply.
+      return undefined
+    }
   }
 
   /** Read one stable session prefix without acquiring an Agent owner. */
@@ -3721,7 +3737,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         if (fs === undefined) return err(request, editorAbsent())
         const { sessionId, path } = request.payload
         try {
-          const root = await editorRoot(ctx, fs, sessionId, signal)
+          const root = await editorRoot(ctx, fs, await sessionCwd(sessionId), signal)
           const target = path === undefined || path === ''
             ? root
             : await editorTarget(fs, root, path, signal)
@@ -3749,7 +3765,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         if (fs === undefined) return err(request, editorAbsent())
         const { sessionId, path } = request.payload
         try {
-          const root = await editorRoot(ctx, fs, sessionId, signal)
+          const root = await editorRoot(ctx, fs, await sessionCwd(sessionId), signal)
           const target = await editorTarget(fs, root, path, signal)
           const info = await fs.stat(target, signal)
           if (info === undefined) {
@@ -3777,7 +3793,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         if (fs === undefined) return err(request, editorAbsent())
         const { sessionId, path, content, version } = request.payload
         try {
-          const root = await editorRoot(ctx, fs, sessionId, signal)
+          const root = await editorRoot(ctx, fs, await sessionCwd(sessionId), signal)
           const target = await editorTarget(fs, root, path, signal)
           // The version guard is the whole point: the agent edits the same
           // files, and an unconditional write would silently discard its work.
@@ -3849,7 +3865,8 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           if (fs === undefined) return err(request, editorAbsent())
           const project = await projectTable(sessionId, signal)
           const text = project?.text ?? await treadmill.readFile(PIPELINE_FILE)
-          const target = project?.target ?? await editorTarget(fs, await editorRoot(ctx, fs, sessionId, signal), PROJECT_TABLE, signal)
+          const target = project?.target
+            ?? await editorTarget(fs, await editorRoot(ctx, fs, await sessionCwd(sessionId), signal), PROJECT_TABLE, signal)
           await fs.writeText(target, setStageEnabledInTable(text, id, enabled), undefined, signal, editorPolicy(ctx, sessionId))
           return ok(request, { id, enabled, tableSource: 'project' })
         } catch (error: unknown) {
@@ -3867,7 +3884,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           return err(request, { code: 'treadmill-denied', message: `"${path}" is not a skill or command; only those can live in a project`, details: {} })
         }
         try {
-          const target = await editorTarget(fs, await editorRoot(ctx, fs, sessionId, signal), projectPath, signal)
+          const target = await editorTarget(fs, await editorRoot(ctx, fs, await sessionCwd(sessionId), signal), projectPath, signal)
           await fs.writeText(target, content, undefined, signal, editorPolicy(ctx, sessionId))
           return ok(request, { path: projectPath })
         } catch (error: unknown) {
