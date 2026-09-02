@@ -1,28 +1,19 @@
-/** Esteira projection view over the current workspace Session and project files. */
+/** Esteira view: the canonical stage graph projected from the project cursor and the current Session. */
 import { useEffect, useMemo, useState } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-api-remotes/client'
 import type { ConvViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: merges the tokenUsage key into SessionProjectionMap for useProjection.
 import type {} from '@deepseek-ai/dsh-token-meter/client'
-import type { EsteiraKey } from './locales.ts'
+import { pipelineStatus, projectStages, stageCommand, type EsteiraCursor, type StageSpec, type StageView } from './stages.ts'
 import css from './EsteiraView.module.css'
 
-export type EsteiraRoute = 'overview' | 'stages' | 'runs' | 'usage' | 'models' | 'artifacts' | 'config'
-export interface EsteiraCursor {
-  schema?: number | undefined
-  plan?: string | undefined
-  activeSprint?: string | undefined
-  stage?: string | undefined
-  attempt?: number | undefined
-  verdict?: string | null | undefined
-  runId?: string | undefined
-  revision?: number | undefined
-  backlog: readonly { id: string; home: string; status: string }[]
-}
+/** Registration-owned operations exposed to the view. */
 export interface EsteiraViewInjected {
+  /** Read and parse the project cursor; `null` when the project has no cursor file. */
   loadCursor: (signal: AbortSignal) => Promise<EsteiraCursor | null>
-  runStage: (sessionId: SessionId, cursor: EsteiraCursor) => Promise<void>
+  /** Submit one stage's Skill prompt to the Session queue. */
+  runStage: (sessionId: SessionId, stage: StageSpec, cursor: EsteiraCursor) => Promise<void>
 }
 type Props = ConvViewProps & PropsLocale<'esteira'> & InjectFace<EsteiraViewInjected>
 
@@ -33,54 +24,200 @@ function describe(reason: unknown): string {
   return reason instanceof Error ? reason.message : String(reason)
 }
 
+/**
+ * Render the Esteira graph, the selected-stage panel, and the sprint and usage bands.
+ * @param props - conversation view props plus the injected cursor and run operations.
+ * @returns the view.
+ */
 export function EsteiraView({ sessionId, useSession, useProjection, loadCursor, runStage, t }: Props) {
   const session = useSession(snapshot => snapshot)
   const usage = useProjection('tokenUsage')
-  const [route, setRoute] = useState<EsteiraRoute>('overview')
   const [cursor, setCursor] = useState<EsteiraCursor | null | undefined>(undefined)
-  const [error, setError] = useState<string | undefined>()
+  const [loadError, setLoadError] = useState<string | undefined>()
+  const [runError, setRunError] = useState<string | undefined>()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
     const abort = new AbortController()
-    void loadCursor(abort.signal).then(setCursor).catch((reason: unknown) => { setError(describe(reason)) })
+    void loadCursor(abort.signal).then(setCursor).catch((reason: unknown) => { setLoadError(describe(reason)) })
     return () => { abort.abort() }
-  }, [loadCursor])
+  }, [loadCursor, session.running])
+  const stages = useMemo(
+    () => cursor === null || cursor === undefined ? [] : projectStages(cursor, session.running),
+    [cursor, session.running],
+  )
   const assistants = useMemo(() => session.nodes.filter(node => node.kind === 'assistant'), [session.nodes])
   const toolCount = useMemo(() => session.nodes.reduce((count, node) => node.kind === 'tool-result' ? count + 1 : count, 0), [session.nodes])
-  const routes: readonly [EsteiraRoute, EsteiraKey][] = [
-    ['overview', 'overview'], ['stages', 'stages'], ['runs', 'runs'], ['usage', 'usage'], ['models', 'models'], ['artifacts', 'artifacts'], ['config', 'config'],
-  ]
-  if (error !== undefined) return <div className={css.empty}>{t('loadFailed', { reason: error })}</div>
+  if (loadError !== undefined) return <div className={css.empty}>{t('loadFailed', { reason: loadError })}</div>
   if (cursor === null) return <div className={css.empty}>{t('absent')}</div>
   if (cursor === undefined) return <div className={css.empty}>…</div>
-  const execute = () => {
+  const current = stages.find(stage => stage.current)
+  const selected = stages.find(stage => stage.id === selectedId)
+  const done = stages.filter(stage => stage.status === 'done').length
+  const status = pipelineStatus(stages)
+  const execute = (stage: StageSpec) => {
     if (busy) return
     setBusy(true)
-    void runStage(sessionId, cursor)
-      .catch((reason: unknown) => { setError(describe(reason)) })
+    setRunError(undefined)
+    void runStage(sessionId, stage, cursor)
+      .catch((reason: unknown) => { setRunError(describe(reason)) })
       .finally(() => { setBusy(false) })
   }
+  const percent = stages.length === 0 ? 0 : Math.round((done / stages.length) * 100)
+  const backlogDone = cursor.backlog.filter(item => item.status === 'done').length
   return (
     <div className={css.root}>
-      <header className={css.header}>
-        <div><h2>{t('title')}</h2><p>{t('sourceNote')}</p></div>
-        <button type="button" className={css.primary} disabled={busy || session.running} onClick={execute}>{busy ? t('running') : t('run')}</button>
-      </header>
-      <nav className={css.nav} aria-label={t('title')}>
-        {routes.map(([id, key]) => <button type="button" aria-current={route === id ? 'page' : undefined} onClick={() => { setRoute(id) }} key={id}>{t(key)}</button>)}
-      </nav>
-      {route === 'overview' && <section className={css.grid}>
-        <article><span>{t('sprint')}</span><strong>{cursor.activeSprint ?? '—'}</strong></article>
-        <article><span>{t('stage')}</span><strong>{cursor.stage ?? '—'}</strong></article>
-        <article><span>{t('attempt')}</span><strong>{cursor.attempt ?? '—'}</strong></article>
-        <article><span>{t('verdict')}</span><strong>{cursor.verdict ?? '—'}</strong></article>
-      </section>}
-      {route === 'stages' && <section className={css.panel}><h3>{t('stages')}</h3><ol className={css.stageList}>{['00-discovery','plano','00s','10a','20','25','10b','30-qa-rpa','30-qa','40-redteam','40-seguranca','deploy'].map(id => <li data-active={id === cursor.stage} key={id}>{id}</li>)}</ol></section>}
-      {route === 'runs' && <section className={css.panel}><h3>{t('runs')}</h3><p>{cursor.runId ?? '—'} · revision {cursor.revision ?? '—'}</p><p>{cursor.backlog.filter(item => item.status === 'done').length} {t('done')} · {cursor.backlog.filter(item => item.status !== 'done').length} {t('pending')}</p></section>}
-      {route === 'usage' && <section className={css.panel}><h3>{t('tokens')}</h3><div className={css.metrics}><span>{t('input')} <b>{numeric(usage?.uncachedInputTokens).toLocaleString()}</b></span><span>{t('output')} <b>{numeric(usage?.outputTokens).toLocaleString()}</b></span><span>{t('cacheRead')} <b>{numeric(usage?.cacheReadTokens).toLocaleString()}</b></span><span>{t('cacheWrite')} <b>{numeric(usage?.cacheWriteTokens).toLocaleString()}</b></span></div><p>{t('costUnavailable')}</p></section>}
-      {route === 'models' && <section className={css.panel}><h3>{t('modelActivity')}</h3>{assistants.length === 0 ? <p>{t('noModelActivity')}</p> : <ul className={css.modelList}>{assistants.map(node => <li key={node.seq}><b>{node.requestConfig?.provider ?? '—'} / {node.requestConfig?.model ?? '—'}</b><span>turn {node.turn} · step {node.step} · {numeric((node.usage as Record<string, unknown> | undefined)?.outputTokens)} output tokens</span></li>)}</ul>}<p>{t('tools')}: {toolCount}</p></section>}
-      {route === 'artifacts' && <section className={css.panel}><h3>{t('artifacts')}</h3><ul>{cursor.backlog.map(item => <li key={item.id}><code>{item.home}</code> — {item.status}</li>)}</ul></section>}
-      {route === 'config' && <section className={css.panel}><h3>{t('config')}</h3><dl><dt>{t('skillRoot')}</dt><dd><code>.opennjord/skills</code></dd><dt>{t('cursor')}</dt><dd><code>.spec/esteira-state.yaml</code></dd><dt>Plano</dt><dd><code>{cursor.plan ?? '—'}</code></dd></dl></section>}
+      <div className={css.control} data-panel={selected !== undefined}>
+        <section className={css.graph} aria-label={t('title')}>
+          <header className={css.head}>
+            <div>
+              <h2 className={css.title}>{cursor.plan ?? cursor.runId ?? t('title')}</h2>
+              <span className={css.pipelineStatus} data-status={status}>{t(`pipeline.${status}`)}</span>
+              <p className={css.meta}>
+                {t('sprint')} {cursor.activeSprint ?? '—'} · {t('runId')} {cursor.runId ?? '—'} · {t('revision')} {cursor.revision ?? '—'}
+              </p>
+            </div>
+            <div className={css.actions}>
+              <button
+                type="button"
+                className={css.primary}
+                disabled={busy || session.running || current === undefined}
+                onClick={() => { if (current !== undefined) execute(current) }}
+              >
+                {busy || session.running ? t('running') : t('run')}
+              </button>
+            </div>
+          </header>
+          {runError !== undefined && <p className={css.error} role="alert">{t('runFailed', { reason: runError })}</p>}
+          <div className={css.progress} aria-label={t('progress')}>
+            <div className={css.track}><div className={css.bar} style={{ width: `${percent}%` }} /></div>
+            <span className={css.progressLabel}>{done}/{stages.length}</span>
+          </div>
+          <ol className={css.nodes}>
+            {stages.map(stage => (
+              <li className={css.node} data-current={stage.current} data-status={stage.status} key={stage.id}>
+                <div className={css.rail}>
+                  <span className={css.dot} data-selected={stage.id === selectedId} aria-hidden="true">{stage.index + 1}</span>
+                  {stage.index < stages.length - 1 && <span className={css.connector} aria-hidden="true" />}
+                </div>
+                <div className={css.body}>
+                  <button
+                    type="button"
+                    className={css.name}
+                    aria-pressed={stage.id === selectedId}
+                    onClick={() => { setSelectedId(stage.id === selectedId ? null : stage.id) }}
+                  >
+                    <span className={css.section}>{t(`section.${stage.section}`)}</span>
+                    <span className={css.label}>{t(`stage.${stage.id}`)}</span>
+                  </button>
+                  <span className={css.badge}>{t(`status.${stage.status}`)}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+        {selected !== undefined && (
+          <StagePanel
+            stage={selected}
+            cursor={cursor}
+            busy={busy || session.running}
+            t={t}
+            onRun={() => { execute(selected) }}
+            onClose={() => { setSelectedId(null) }}
+          />
+        )}
+      </div>
+      <section className={css.band} aria-label={t('sprints')}>
+        <header className={css.bandHead}>
+          <h3 className={css.bandTitle}>{t('sprints')}</h3>
+          {cursor.backlog.length > 0 && (
+            <span className={css.bandCount}>
+              {t('sprintsCount', { count: cursor.backlog.length })} · {backlogDone} {t('backlogDone')} · {cursor.backlog.length - backlogDone} {t('backlogPending')}
+            </span>
+          )}
+        </header>
+        {cursor.backlog.length === 0 ? <p className={css.bandEmpty}>{t('noSprints')}</p> : (
+          <div className={css.grid}>
+            {cursor.backlog.map(item => (
+              <article className={css.card} data-active={item.id === cursor.activeSprint} key={item.id}>
+                <span className={css.cardName}>{item.id}</span>
+                <span className={css.cardPath}>{item.home}</span>
+                <span className={css.badges}><span className={css.chip} data-status={item.status}>{item.status}</span></span>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+      <section className={css.band} aria-label={t('usage')}>
+        <header className={css.bandHead}><h3 className={css.bandTitle}>{t('usage')}</h3></header>
+        <div className={css.metrics}>
+          <span>{t('input')} <b>{numeric(usage?.uncachedInputTokens).toLocaleString()}</b></span>
+          <span>{t('output')} <b>{numeric(usage?.outputTokens).toLocaleString()}</b></span>
+          <span>{t('cacheRead')} <b>{numeric(usage?.cacheReadTokens).toLocaleString()}</b></span>
+          <span>{t('cacheWrite')} <b>{numeric(usage?.cacheWriteTokens).toLocaleString()}</b></span>
+          <span>{t('tools')} <b>{toolCount}</b></span>
+        </div>
+      </section>
+      <section className={css.band} aria-label={t('models')}>
+        <header className={css.bandHead}><h3 className={css.bandTitle}>{t('models')}</h3></header>
+        {assistants.length === 0 ? <p className={css.bandEmpty}>{t('noModelActivity')}</p> : (
+          <ul className={css.modelList}>
+            {assistants.map((node) => {
+              const outputTokens = numeric((node.usage as Record<string, unknown> | undefined)?.outputTokens)
+              return (
+                <li key={node.seq}>
+                  <b>{node.requestConfig?.provider ?? '—'} / {node.requestConfig?.model ?? '—'}</b>
+                  <span>turn {node.turn} · step {node.step} · {outputTokens} output tokens</span>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
+      <p className={css.note}>{t('sourceNote')}</p>
     </div>
+  )
+}
+
+interface StagePanelProps {
+  stage: StageView
+  cursor: EsteiraCursor
+  busy: boolean
+  t: Props['t']
+  onRun: () => void
+  onClose: () => void
+}
+
+function StagePanel({ stage, cursor, busy, t, onRun, onClose }: StagePanelProps) {
+  return (
+    <aside className={css.panel} aria-label={t('panel')}>
+      <header className={css.panelHead}>
+        <div>
+          <span className={css.section}>{t(`section.${stage.section}`)}</span>
+          <h3 className={css.panelTitle}>{t(`stage.${stage.id}`)}</h3>
+        </div>
+        <button type="button" className={css.close} onClick={onClose} aria-label={t('close')}>✕</button>
+      </header>
+      <dl className={css.rows}>
+        <div className={css.row}><dt>{t('status')}</dt><dd data-status={stage.status}>{t(`status.${stage.status}`)}</dd></div>
+        <div className={css.row}><dt>{t('skill')}</dt><dd><code>{stageCommand(stage, cursor)}</code></dd></div>
+        <div className={css.row}><dt>{t('gate')}</dt><dd>{stage.gate === 'gated' ? t('gateManual') : t('gateAuto')}</dd></div>
+        <div className={css.row}>
+          <dt>{t('attempt')}</dt>
+          <dd>{stage.current && cursor.attempt !== undefined ? cursor.attempt : t('notRun')}</dd>
+        </div>
+        {stage.emitsVerdict && (
+          <div className={css.row}>
+            <dt>{t('verdict')}</dt>
+            <dd>{stage.current && typeof cursor.verdict === 'string' ? cursor.verdict : t('noVerdict')}</dd>
+          </div>
+        )}
+        <div className={css.row}>
+          <dt>{t('produces')}</dt>
+          <dd>{stage.produces.length === 0 ? t('nothingProduced') : stage.produces.map(path => <code key={path}>{path}</code>)}</dd>
+        </div>
+      </dl>
+      <button type="button" className={css.ghost} disabled={busy} onClick={onRun}>{busy ? t('running') : t('runStage')}</button>
+    </aside>
   )
 }
