@@ -50,10 +50,57 @@ export interface KnowledgeInjected {
   readFile: (path: string, signal: AbortSignal) => Promise<{ content: string }>
   /** Open one source file in the host operating system's configured editor. */
   editFile: (path: string, signal: AbortSignal) => Promise<void>
+  /** Describe the harness-owned Treadmill installation. */
+  describeTreadmill: (signal: AbortSignal) => Promise<TreadmillInstallation>
+  /** Read one installation file, relative to its root. */
+  readTreadmillFile: (path: string, signal: AbortSignal) => Promise<string>
+  /** Replace one installation file; the host applies it to the next request. */
+  writeTreadmillFile: (path: string, content: string, signal: AbortSignal) => Promise<void>
+  /** Switch the whole Treadmill on or off through the `treadmill` user setting. */
+  setTreadmillEnabled: (enabled: boolean, signal: AbortSignal) => Promise<void>
+}
+
+/** The Treadmill installation as the pane shows it. */
+export interface TreadmillInstallation {
+  root: string
+  enabled: boolean
+  pipelineError?: string
+  files: readonly { path: string; category: string; size: number }[]
 }
 
 /** Which pane is showing. */
-type Pane = 'skills' | 'decisions' | 'docs'
+type Pane = 'skills' | 'decisions' | 'docs' | 'treadmill'
+const TREADMILL_CATEGORIES = ['esteira', 'skills', 'commands', 'rules', 'agents', 'tools', 'integrations'] as const
+type TreadmillCategory = typeof TREADMILL_CATEGORIES[number] | 'other'
+function categoryOf(category: string): TreadmillCategory {
+  return (TREADMILL_CATEGORIES as readonly string[]).includes(category) ? category as TreadmillCategory : 'other'
+}
+const TREADMILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+/**
+ * The file a new installation entry starts from, per category. Skills and
+ * integrations are directories with an entry file; the others are one file.
+ * @param category - installation category.
+ * @param name - validated entry name.
+ * @returns the relative path and the template content.
+ */
+export function treadmillTemplate(category: TreadmillCategory, name: string): { path: string; content: string } | undefined {
+  switch (category) {
+    case 'skills':
+      return { path: `skills/${name}/SKILL.md`, content: `---\nname: ${name}\ndescription: Use when …\n---\n\n# ${name}\n\nDescribe the runbook here.\n` }
+    case 'commands':
+      return { path: `commands/${name}.md`, content: `---\nname: ${name}\ndescription: Use when …\n---\n\nDescribe what the command does when invoked as /${name}.\n` }
+    case 'agents':
+      return { path: `agents/${name}.md`, content: `---\nname: ${name}\ndescription: What this agent is for\nmodel: inherit\n---\n\nDescribe the agent's role, inputs, and outputs.\n` }
+    case 'rules':
+      return { path: `rules/${name}.md`, content: `# ${name}\n\nState the rule, why it exists, and how it is verified.\n` }
+    case 'tools':
+      return { path: `tools/${name}.sh`, content: `#!/usr/bin/env bash\n# ${name} — describe what this tool checks.\nset -euo pipefail\n` }
+    case 'integrations':
+      return { path: `integrations/${name}/README.md`, content: `# ${name}\n\nDescribe the integration and how the Treadmill uses it.\n` }
+    default:
+      return undefined
+  }
+}
 
 /** Load state shared by every pane. */
 type Loaded<T> =
@@ -92,13 +139,14 @@ export function originOf(source: string): 'project' | 'user' | 'composition' {
  * the top level finds the few files beside those directories and misses the
  * record set itself.
  */
-const KNOWLEDGE_DIRS: Readonly<Record<Exclude<Pane, 'skills'>, readonly string[]>> = {
+type DocPane = Exclude<Pane, 'skills' | 'treadmill'>
+const KNOWLEDGE_DIRS: Readonly<Record<DocPane, readonly string[]>> = {
   decisions: ['docs/adr', '.agents/notes/proposed', '.agents/notes/implemented'],
   docs: ['docs', '.agents'],
 }
 
 /** How far below a knowledge directory a document may sit. */
-const SCAN_DEPTH: Readonly<Record<Exclude<Pane, 'skills'>, number>> = {
+const SCAN_DEPTH: Readonly<Record<DocPane, number>> = {
   // One level covers the kind directories; anything deeper is archive.
   decisions: 1,
   docs: 0,
@@ -112,8 +160,60 @@ const NOT_A_RECORD = new Set(['AGENTS.md', 'CLAUDE.md', 'README.md'])
  * @param props - the injected wire calls and `t`.
  * @returns the three-pane section.
  */
-export function KnowledgeSection({ listSkills, listDir, readFile, editFile, t }: KnowledgeSectionProps) {
+export function KnowledgeSection({
+  listSkills, listDir, readFile, editFile, describeTreadmill, readTreadmillFile, writeTreadmillFile, setTreadmillEnabled, t,
+}: KnowledgeSectionProps) {
   const [pane, setPane] = useState<Pane>('skills')
+  const [treadmill, setTreadmill] = useState<Loaded<TreadmillInstallation>>({ kind: 'loading' })
+  const [draft, setDraft] = useState<{ path: string; body: string; saved: boolean; error?: string } | undefined>(undefined)
+  const [treadmillGeneration, setTreadmillGeneration] = useState(0)
+
+  useEffect(() => {
+    if (pane !== 'treadmill') return
+    const controller = new AbortController()
+    setTreadmill({ kind: 'loading' })
+    describeTreadmill(controller.signal).then(
+      (installation) => { if (!controller.signal.aborted) setTreadmill({ kind: 'ready', items: [installation] }) },
+      (error: unknown) => { if (!controller.signal.aborted) setTreadmill({ kind: 'failed', reason: failureText(error) }) },
+    )
+    return () => { controller.abort() }
+  }, [pane, describeTreadmill, treadmillGeneration])
+
+  const openTreadmillFile = useCallback((path: string) => {
+    readTreadmillFile(path, new AbortController().signal).then(
+      (body) => { setDraft({ path, body, saved: false }) },
+      (error: unknown) => { setDraft({ path, body: '', saved: false, error: failureText(error) }) },
+    )
+  }, [readTreadmillFile])
+
+  const saveDraft = useCallback(() => {
+    if (draft === undefined) return
+    const current = draft
+    writeTreadmillFile(current.path, current.body, new AbortController().signal).then(
+      () => {
+        setDraft({ ...current, saved: true })
+        setTreadmillGeneration(value => value + 1)
+      },
+      (error: unknown) => { setDraft({ ...current, saved: false, error: failureText(error) }) },
+    )
+  }, [draft, writeTreadmillFile])
+
+  const createTreadmillFile = useCallback((path: string, content: string) => {
+    writeTreadmillFile(path, content, new AbortController().signal).then(
+      () => {
+        setTreadmillGeneration(value => value + 1)
+        setDraft({ path, body: content, saved: true })
+      },
+      (error: unknown) => { setTreadmill({ kind: 'failed', reason: failureText(error) }) },
+    )
+  }, [writeTreadmillFile])
+
+  const toggleTreadmill = useCallback((enabled: boolean) => {
+    setTreadmillEnabled(enabled, new AbortController().signal).then(
+      () => { setTreadmillGeneration(value => value + 1) },
+      (error: unknown) => { setTreadmill({ kind: 'failed', reason: failureText(error) }) },
+    )
+  }, [setTreadmillEnabled])
   const [skills, setSkills] = useState<Loaded<KnowledgeSkill>>({ kind: 'loading' })
   const [docs, setDocs] = useState<Loaded<KnowledgeDoc>>({ kind: 'loading' })
   const [open, setOpen] = useState<{ name: string; body: string } | undefined>(undefined)
@@ -134,7 +234,7 @@ export function KnowledgeSection({ listSkills, listDir, readFile, editFile, t }:
   // exist in this project is skipped rather than reported, because a project
   // without `docs/adr` is ordinary, not broken.
   useEffect(() => {
-    if (pane === 'skills') return
+    if (pane === 'skills' || pane === 'treadmill') return
     const controller = new AbortController()
     setDocs({ kind: 'loading' })
     void (async () => {
@@ -190,6 +290,31 @@ export function KnowledgeSection({ listSkills, listDir, readFile, editFile, t }:
     })
   }, [editFile])
 
+  if (draft !== undefined) {
+    return (
+      <div className={css.root}>
+        <div className={css.tabs}>
+          <button type="button" className={css.tab} onClick={() => { setDraft(undefined) }}>
+            {t('back')}
+          </button>
+          <span className={css.docTitle}>{draft.path}</span>
+        </div>
+        <textarea
+          className={css.editor}
+          value={draft.body}
+          spellCheck={false}
+          onChange={(event) => { setDraft({ ...draft, body: event.target.value, saved: false }) }}
+        />
+        <div className={css.rowActions}>
+          <button type="button" className={css.openButton} onClick={saveDraft}>{t('treadmill.save')}</button>
+          <button type="button" className={css.openButton} onClick={() => { setDraft(undefined) }}>{t('treadmill.cancel')}</button>
+          {draft.saved && <span className={css.note} role="status">{t('treadmill.saved')}</span>}
+          {draft.error !== undefined && <span className={css.note} role="alert">{t('failed', { reason: draft.error })}</span>}
+        </div>
+      </div>
+    )
+  }
+
   if (open !== undefined) {
     return (
       <div className={css.root}>
@@ -207,7 +332,7 @@ export function KnowledgeSection({ listSkills, listDir, readFile, editFile, t }:
   return (
     <div className={css.root}>
       <div className={css.tabs}>
-        {(['skills', 'decisions', 'docs'] as const).map(key => (
+        {(['skills', 'decisions', 'docs', 'treadmill'] as const).map(key => (
           <button
             key={key}
             type="button"
@@ -257,7 +382,23 @@ export function KnowledgeSection({ listSkills, listDir, readFile, editFile, t }:
         </>
       )}
 
-      {pane !== 'skills' && (
+      {pane === 'treadmill' && (
+        <>
+          {treadmill.kind === 'loading' && <p className={css.note} role="status">{t('loading')}</p>}
+          {treadmill.kind === 'failed' && <p className={css.note} role="status">{t('failed', { reason: treadmill.reason })}</p>}
+          {treadmill.kind === 'ready' && treadmill.items[0] !== undefined && (
+            <TreadmillPane
+              installation={treadmill.items[0]}
+              t={t}
+              onToggle={toggleTreadmill}
+              onOpen={openTreadmillFile}
+              onCreate={createTreadmillFile}
+            />
+          )}
+        </>
+      )}
+
+      {pane !== 'skills' && pane !== 'treadmill' && (
         <>
           <input
             className={css.filter}
@@ -295,5 +436,90 @@ export function KnowledgeSection({ listSkills, listDir, readFile, editFile, t }:
         </>
       )}
     </div>
+  )
+}
+
+interface TreadmillPaneProps {
+  installation: TreadmillInstallation
+  t: KnowledgeSectionProps['t']
+  onToggle: (enabled: boolean) => void
+  onOpen: (path: string) => void
+  onCreate: (path: string, content: string) => void
+}
+
+function TreadmillPane({ installation, t, onToggle, onOpen, onCreate }: TreadmillPaneProps) {
+  const [creating, setCreating] = useState<TreadmillCategory | undefined>(undefined)
+  const [newName, setNewName] = useState('')
+  const [nameError, setNameError] = useState(false)
+  const groups = new Map<TreadmillCategory, TreadmillInstallation['files']>()
+  for (const file of installation.files) {
+    const category = categoryOf(file.category)
+    groups.set(category, [...groups.get(category) ?? [], file])
+  }
+  const submitNew = (category: TreadmillCategory) => {
+    const template = TREADMILL_NAME.test(newName) ? treadmillTemplate(category, newName) : undefined
+    if (template === undefined) {
+      setNameError(true)
+      return
+    }
+    setCreating(undefined)
+    setNewName('')
+    setNameError(false)
+    onCreate(template.path, template.content)
+  }
+  return (
+    <>
+      <p className={css.note}>{t('treadmill.explain', { root: installation.root })}</p>
+      <label className={css.toggle}>
+        <input type="checkbox" checked={installation.enabled} onChange={(event) => { onToggle(event.target.checked) }} />
+        {installation.enabled ? t('treadmill.enabled') : t('treadmill.disabled')}
+      </label>
+      {installation.pipelineError !== undefined && (
+        <p className={css.note} role="alert">{t('treadmill.pipelineError', { reason: installation.pipelineError })}</p>
+      )}
+      {[...TREADMILL_CATEGORIES, 'other' as const].map((category) => {
+        const files = groups.get(category) ?? []
+        const creatable = treadmillTemplate(category, 'x') !== undefined
+        if (files.length === 0 && !creatable) return null
+        return (
+          <section key={category} className={css.group}>
+            <div className={css.groupHead}>
+              <h4 className={css.groupTitle}>{t(`treadmill.category.${category}` as const)}</h4>
+              {creatable && (
+                <button
+                  type="button"
+                  className={css.openButton}
+                  onClick={() => { setCreating(creating === category ? undefined : category); setNewName(''); setNameError(false) }}
+                >
+                  {creating === category ? t('treadmill.cancel') : t('treadmill.new')}
+                </button>
+              )}
+            </div>
+            {creating === category && (
+              <form className={css.newForm} onSubmit={(event) => { event.preventDefault(); submitNew(category) }}>
+                <input
+                  className={css.filter}
+                  value={newName}
+                  placeholder={t('treadmill.newName')}
+                  aria-label={t('treadmill.newName')}
+                  onChange={(event) => { setNewName(event.target.value); setNameError(false) }}
+                />
+                <button type="submit" className={css.openButton}>{t('treadmill.create')}</button>
+                {nameError && <span className={css.note} role="alert">{t('treadmill.invalidName')}</span>}
+              </form>
+            )}
+            <ul className={css.list}>
+              {files.map(file => (
+                <li key={file.path} className={css.row}>
+                  <span className={css.filePath}>{file.path}</span>
+                  <span className={css.detail}>{file.size.toLocaleString()} B</span>
+                  <button type="button" className={css.openButton} onClick={() => { onOpen(file.path) }}>{t('edit')}</button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      })}
+    </>
   )
 }

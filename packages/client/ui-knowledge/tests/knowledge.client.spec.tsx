@@ -6,7 +6,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { KnowledgeSection, originOf } from '../src/client/KnowledgeSection.tsx'
+import { KnowledgeSection, originOf, treadmillTemplate } from '../src/client/KnowledgeSection.tsx'
 import type { KnowledgeSectionProps } from '../src/client/KnowledgeSection.tsx'
 import { apply as nodeApply } from '../src/index.ts'
 import { inject } from '../src/client/index.ts'
@@ -22,6 +22,17 @@ function makeTranslate(dict: Record<string, string>) {
       ? template
       : template.replace(/\{(\w+)\}/g, (_m, name: string) => params[name] ?? '')
   }
+}
+
+const TREADMILL = {
+  root: '/home/user/.dsh/treadmill',
+  enabled: true,
+  files: [
+    { path: 'esteira/pipeline.yaml', category: 'esteira', size: 1200 },
+    { path: 'skills/discovery/SKILL.md', category: 'skills', size: 3400 },
+    { path: 'rules/eng/01-file-size.md', category: 'rules', size: 800 },
+    { path: 'LICENSE', category: 'LICENSE', size: 10 },
+  ],
 }
 
 const SKILLS = [
@@ -46,6 +57,10 @@ function mount(overrides: Partial<KnowledgeSectionProps> = {}) {
       : Promise.reject(new Error('ENOENT'))),
     readFile: overrides.readFile ?? (() => Promise.resolve({ content: '# A decision\n' })),
     editFile: overrides.editFile ?? (() => Promise.resolve()),
+    describeTreadmill: overrides.describeTreadmill ?? (() => Promise.resolve(TREADMILL)),
+    readTreadmillFile: overrides.readTreadmillFile ?? ((path: string) => Promise.resolve(`# ${path}\n`)),
+    writeTreadmillFile: overrides.writeTreadmillFile ?? (() => Promise.resolve()),
+    setTreadmillEnabled: overrides.setTreadmillEnabled ?? (() => Promise.resolve()),
     t: makeTranslate(zh),
   } as unknown as KnowledgeSectionProps
   return render(<KnowledgeSection {...props} />)
@@ -223,5 +238,90 @@ describe('the document panes', () => {
     fireEvent.click(screen.getByText(zh.open))
 
     expect(await screen.findByText('not text')).toBeTruthy()
+  })
+})
+
+describe('Skills-treadmill pane', () => {
+  it('lists the installation by category, edits a file, and saves it', async () => {
+    const writes: [string, string][] = []
+    mount({ writeTreadmillFile: (path, content) => { writes.push([path, content]); return Promise.resolve() } })
+    fireEvent.click(screen.getByRole('button', { name: zh['tab.treadmill'] }))
+    expect(await screen.findByText('esteira/pipeline.yaml')).toBeTruthy()
+    expect(screen.getByText(zh['treadmill.category.esteira'])).toBeTruthy()
+    expect(screen.getByText(zh['treadmill.category.other'])).toBeTruthy()
+    expect(screen.getByText(zh['treadmill.enabled'])).toBeTruthy()
+    const [editButton] = screen.getAllByRole('button', { name: zh['edit'] })
+    if (editButton === undefined) throw new Error('no edit button')
+    fireEvent.click(editButton)
+    const editor = await screen.findByRole('textbox')
+    expect((editor as HTMLTextAreaElement).value).toBe('# esteira/pipeline.yaml\n')
+    fireEvent.change(editor, { target: { value: 'schema: 1\nstages: []\n' } })
+    fireEvent.click(screen.getByRole('button', { name: zh['treadmill.save'] }))
+    expect(await screen.findByText(zh['treadmill.saved'])).toBeTruthy()
+    expect(writes).toEqual([['esteira/pipeline.yaml', 'schema: 1\nstages: []\n']])
+  })
+
+  it('switches the Treadmill off through the toggle and reports a broken stage table', async () => {
+    const toggles: boolean[] = []
+    let enabled = true
+    mount({
+      describeTreadmill: () => Promise.resolve({ ...TREADMILL, enabled, ...enabled ? {} : { pipelineError: 'duplicate stage id "a"' } }),
+      setTreadmillEnabled: (next) => { toggles.push(next); enabled = next; return Promise.resolve() },
+    })
+    fireEvent.click(screen.getByRole('button', { name: zh['tab.treadmill'] }))
+    const toggle = await screen.findByRole('checkbox')
+    fireEvent.click(toggle)
+    expect(toggles).toEqual([false])
+    expect(await screen.findByText(zh['treadmill.disabled'])).toBeTruthy()
+    expect(screen.getByText(/duplicate stage id/)).toBeTruthy()
+  })
+
+  it('reports an installation that cannot be described or read', async () => {
+    mount({ describeTreadmill: () => Promise.reject(new Error('treadmill-unavailable: absent')) })
+    fireEvent.click(screen.getByRole('button', { name: zh['tab.treadmill'] }))
+    expect(await screen.findByText(/treadmill-unavailable/)).toBeTruthy()
+    cleanup()
+    mount({ readTreadmillFile: () => Promise.reject(new Error('gone')) })
+    fireEvent.click(screen.getByRole('button', { name: zh['tab.treadmill'] }))
+    const [editButton] = await screen.findAllByRole('button', { name: zh['edit'] })
+    if (editButton === undefined) throw new Error('no edit button')
+    fireEvent.click(editButton)
+    expect(await screen.findByText(/gone/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: zh['treadmill.cancel'] }))
+    expect(screen.queryByRole('textbox')).toBeNull()
+  })
+})
+
+describe('Skills-treadmill creation', () => {
+  it('creates a skill from its template and opens it in the editor', async () => {
+    const writes: [string, string][] = []
+    mount({ writeTreadmillFile: (path, content) => { writes.push([path, content]); return Promise.resolve() } })
+    fireEvent.click(screen.getByRole('button', { name: zh['tab.treadmill'] }))
+    await screen.findByText('esteira/pipeline.yaml')
+    const [newSkill] = screen.getAllByRole('button', { name: zh['treadmill.new'] })
+    if (newSkill === undefined) throw new Error('no new button')
+    fireEvent.click(newSkill)
+    const name = screen.getByRole('textbox', { name: zh['treadmill.newName'] })
+    fireEvent.change(name, { target: { value: 'Bad Name' } })
+    fireEvent.click(screen.getByRole('button', { name: zh['treadmill.create'] }))
+    expect(screen.getByText(zh['treadmill.invalidName'])).toBeTruthy()
+    expect(writes).toEqual([])
+    fireEvent.change(name, { target: { value: 'my-skill' } })
+    fireEvent.click(screen.getByRole('button', { name: zh['treadmill.create'] }))
+    const editor = await screen.findByRole('textbox')
+    expect(writes).toHaveLength(1)
+    expect(writes[0]?.[0]).toBe('skills/my-skill/SKILL.md')
+    expect((editor as HTMLTextAreaElement).value).toContain('name: my-skill')
+  })
+
+  it('maps every creatable category to its entry file', () => {
+    expect(treadmillTemplate('skills', 'a')?.path).toBe('skills/a/SKILL.md')
+    expect(treadmillTemplate('commands', 'a')?.path).toBe('commands/a.md')
+    expect(treadmillTemplate('agents', 'a')?.path).toBe('agents/a.md')
+    expect(treadmillTemplate('rules', 'a')?.path).toBe('rules/a.md')
+    expect(treadmillTemplate('tools', 'a')?.path).toBe('tools/a.sh')
+    expect(treadmillTemplate('integrations', 'a')?.path).toBe('integrations/a/README.md')
+    expect(treadmillTemplate('esteira', 'a')).toBeUndefined()
+    expect(treadmillTemplate('other', 'a')).toBeUndefined()
   })
 })

@@ -46,6 +46,9 @@ function knowledgeFailure(error: RpcError): Error {
  * Client plugin body: register the Knowledge settings section.
  * @param ctx - client root context.
  */
+/** Provider name of the harness-owned Treadmill installation, listed in its own pane. */
+const TREADMILL_PROVIDER = 'treadmill'
+
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-knowledge: dictionaries')
   const t = ctx.locale.bind(NS)
@@ -75,7 +78,9 @@ export function apply(ctx: ClientContext): void {
       if (sessionId === undefined) return []
       const response = await api.skills.list({ sessionId: sessionId as never }, signal)
       if (!response.result.ok) throw knowledgeFailure(response.result.error)
-      return response.result.value.skills.map(skill => ({
+      // The Skills pane lists what the project, the user, and the composition
+      // bring; the Treadmill installation has its own pane.
+      return response.result.value.skills.filter(skill => skill.provider !== TREADMILL_PROVIDER).map(skill => ({
         name: skill.name,
         description: skill.description,
         ...skill.whenToUse === undefined ? {} : { whenToUse: skill.whenToUse },
@@ -104,6 +109,25 @@ export function apply(ctx: ClientContext): void {
     },
     editFile: async (path, signal) => {
       const response = await api.host.openPath({ path }, signal)
+      if (!response.result.ok) throw knowledgeFailure(response.result.error)
+    },
+    describeTreadmill: async (signal) => {
+      const response = await api.treadmill.describe({}, signal)
+      if (!response.result.ok) throw knowledgeFailure(response.result.error)
+      const { root, enabled, files, pipelineError } = response.result.value
+      return { root, enabled, files, ...pipelineError === undefined ? {} : { pipelineError } }
+    },
+    readTreadmillFile: async (path, signal) => {
+      const response = await api.treadmill.readFile({ path }, signal)
+      if (!response.result.ok) throw knowledgeFailure(response.result.error)
+      return response.result.value.content
+    },
+    writeTreadmillFile: async (path, content, signal) => {
+      const response = await api.treadmill.writeFile({ path, content }, signal)
+      if (!response.result.ok) throw knowledgeFailure(response.result.error)
+    },
+    setTreadmillEnabled: async (enabled, signal) => {
+      const response = await api.settings.update({ ns: 'treadmill', patch: { enabled } }, signal)
       if (!response.result.ok) throw knowledgeFailure(response.result.error)
     },
   }

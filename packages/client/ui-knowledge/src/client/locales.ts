@@ -9,6 +9,27 @@ export type KnowledgeKey =
   | 'tab.skills'
   | 'tab.decisions'
   | 'tab.docs'
+  | 'tab.treadmill'
+  | 'treadmill.explain'
+  | 'treadmill.enabled'
+  | 'treadmill.disabled'
+  | 'treadmill.root'
+  | 'treadmill.pipelineError'
+  | 'treadmill.save'
+  | 'treadmill.saved'
+  | 'treadmill.cancel'
+  | 'treadmill.category.skills'
+  | 'treadmill.category.commands'
+  | 'treadmill.category.rules'
+  | 'treadmill.category.agents'
+  | 'treadmill.category.tools'
+  | 'treadmill.category.integrations'
+  | 'treadmill.category.esteira'
+  | 'treadmill.category.other'
+  | 'treadmill.new'
+  | 'treadmill.newName'
+  | 'treadmill.create'
+  | 'treadmill.invalidName'
   | 'loading'
   | 'failed'
   | 'empty'
@@ -38,6 +59,27 @@ export const zh: Record<KnowledgeKey, string> = {
   'tab.skills': '技能',
   'tab.decisions': '决策记录',
   'tab.docs': '文档',
+  'tab.treadmill': 'Skills-treadmill',
+  'treadmill.explain': 'Treadmill 安装由 harness 提供，位于 {root}。在此编辑 skills、rules、commands、agents、tools 和阶段表（esteira/pipeline.yaml）；保存后立即生效，项目进度不受影响。',
+  'treadmill.enabled': 'Treadmill 已启用：其 skills 和规则对每个项目可用。',
+  'treadmill.disabled': 'Treadmill 已停用：不提供任何 skill，也不注入规则。',
+  'treadmill.root': '安装目录',
+  'treadmill.pipelineError': '阶段表无效：{reason}',
+  'treadmill.save': '保存',
+  'treadmill.saved': '已保存',
+  'treadmill.cancel': '取消',
+  'treadmill.category.skills': 'Skills',
+  'treadmill.category.commands': 'Commands',
+  'treadmill.category.rules': 'Rules',
+  'treadmill.category.agents': 'Agents',
+  'treadmill.category.tools': 'Tools',
+  'treadmill.category.integrations': 'Integrations',
+  'treadmill.category.esteira': '阶段表',
+  'treadmill.category.other': '其他',
+  'treadmill.new': '+ 新建',
+  'treadmill.newName': '名称（小写字母、数字和连字符）',
+  'treadmill.create': '创建',
+  'treadmill.invalidName': '名称只能包含小写字母、数字和连字符。',
   'loading': '正在加载…',
   'failed': '加载失败：{reason}',
   'empty': '这里还没有内容。',
@@ -61,6 +103,27 @@ export const en: Record<KnowledgeKey, string> = {
   'tab.skills': 'Skills',
   'tab.decisions': 'Decision records',
   'tab.docs': 'Documentation',
+  'tab.treadmill': 'Skills-treadmill',
+  'treadmill.explain': 'The Treadmill installation ships with the harness and lives at {root}. Edit its skills, rules, commands, agents, tools, and stage table (esteira/pipeline.yaml) here; a save applies immediately and never touches a project\'s progress.',
+  'treadmill.enabled': 'Treadmill is enabled: its skills and rules reach every project.',
+  'treadmill.disabled': 'Treadmill is disabled: no skill is served and no rule is injected.',
+  'treadmill.root': 'Installation root',
+  'treadmill.pipelineError': 'The stage table is invalid: {reason}',
+  'treadmill.save': 'Save',
+  'treadmill.saved': 'Saved',
+  'treadmill.cancel': 'Cancel',
+  'treadmill.category.skills': 'Skills',
+  'treadmill.category.commands': 'Commands',
+  'treadmill.category.rules': 'Rules',
+  'treadmill.category.agents': 'Agents',
+  'treadmill.category.tools': 'Tools',
+  'treadmill.category.integrations': 'Integrations',
+  'treadmill.category.esteira': 'Stage table',
+  'treadmill.category.other': 'Other',
+  'treadmill.new': '+ New',
+  'treadmill.newName': 'Name (lowercase letters, digits, and hyphens)',
+  'treadmill.create': 'Create',
+  'treadmill.invalidName': 'A name uses only lowercase letters, digits, and hyphens.',
   'loading': 'Loading…',
   'failed': 'Loading failed: {reason}',
   'empty': 'Nothing here yet.',

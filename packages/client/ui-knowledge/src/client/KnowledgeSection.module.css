@@ -204,3 +204,53 @@
     margin-left: 0;
   }
 }
+
+.editor {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 420px;
+  padding: 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-markdown-code-block-small);
+  resize: vertical;
+}
+.toggle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xs-13);
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+}
+.groupTitle {
+  margin: 0;
+  font: var(--dsw-font-s-strong-14);
+}
+.groupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.newForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.filePath {
+  flex: 1;
+  min-width: 0;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xs-13);
+  overflow-wrap: anywhere;
+}
