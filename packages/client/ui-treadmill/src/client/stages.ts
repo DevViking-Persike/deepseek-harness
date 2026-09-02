@@ -1,7 +1,7 @@
 /** Canonical OpenNjord Treadmill stages and the pure projection of a cursor onto them. */
 
 /** Projected state of one stage relative to the cursor. */
-export type StageStatus = 'pending' | 'running' | 'awaiting-user' | 'awaiting-gate' | 'done' | 'error'
+export type StageStatus = 'pending' | 'running' | 'awaiting-user' | 'awaiting-gate' | 'done' | 'error' | 'skipped'
 /** Projected state of the whole pipeline. */
 export type PipelineStatus = 'running' | 'awaiting-user' | 'awaiting-gate' | 'done' | 'failed'
 
@@ -19,6 +19,8 @@ export interface StageSpec {
   readonly emitsVerdict: boolean
   /** Project directories the stage writes, relative to the project root. */
   readonly produces: readonly string[]
+  /** A disabled stage stays in the table and is skipped; the built-in table enables every stage. */
+  readonly enabled?: boolean
 }
 
 /** The twelve canonical stages, mirroring the OpenNjord process contract. */
@@ -33,7 +35,7 @@ export const STAGES: readonly StageSpec[] = [
   { id: '30-qa-rpa', section: 'qa', skill: 'qa-rpa', gate: 'auto', emitsVerdict: true, produces: ['.spec/qa'] },
   { id: '30-qa', section: 'qa', skill: 'qa', gate: 'auto', emitsVerdict: true, produces: ['.spec/qa'] },
   { id: '40-redteam', section: 'security', skill: 'redteam', gate: 'auto', emitsVerdict: true, produces: ['.spec/seguranca'] },
-  { id: '40-seguranca', section: 'security', skill: 'seguranca', gate: 'auto', emitsVerdict: true, produces: ['.spec/seguranca'] },
+  { id: '40-seguranca', section: 'security', skill: 'seguranca', gate: 'gated', emitsVerdict: true, produces: ['.spec/seguranca'] },
   { id: 'deploy', section: 'deploy', skill: 'deploy', gate: 'gated', emitsVerdict: false, produces: [] },
 ]
 
@@ -106,11 +108,12 @@ export function projectStages(cursor: TreadmillCursor, running: boolean, table: 
   const rejected = typeof cursor.verdict === 'string' && /^reprov/i.test(cursor.verdict)
   return table.map((spec, index) => {
     const current = index === currentIndex
-    const status: StageStatus = cursor.stage === 'done' || (currentIndex >= 0 && index < currentIndex) ? 'done'
-      : !current ? 'pending'
-        : running ? 'running'
-          : rejected ? 'error'
-            : spec.gate === 'gated' ? 'awaiting-gate' : 'awaiting-user'
+    const status: StageStatus = spec.enabled === false ? 'skipped'
+      : cursor.stage === 'done' || (currentIndex >= 0 && index < currentIndex) ? 'done'
+        : !current ? 'pending'
+          : running ? 'running'
+            : rejected ? 'error'
+              : spec.gate === 'gated' ? 'awaiting-gate' : 'awaiting-user'
     return { ...spec, index, status, current }
   })
 }
@@ -122,7 +125,7 @@ export function projectStages(cursor: TreadmillCursor, running: boolean, table: 
  */
 export function pipelineStatus(stages: readonly StageView[]): PipelineStatus {
   const current = stages.find(stage => stage.current)
-  if (current === undefined) return stages.every(stage => stage.status === 'done') ? 'done' : 'awaiting-user'
+  if (current === undefined) return stages.every(stage => stage.status === 'done' || stage.status === 'skipped') ? 'done' : 'awaiting-user'
   switch (current.status) {
     case 'running': return 'running'
     case 'error': return 'failed'
@@ -146,15 +149,35 @@ export function stageCommand(spec: StageSpec, cursor: TreadmillCursor): string {
 }
 
 /**
- * Build the prompt that runs one stage through its installed Skill.
+ * Build the prompt that runs one stage through its installed Skill. Disabled
+ * stages in the table are named so the Skill advances the cursor past them.
  * @param spec - stage to run.
  * @param cursor - parsed cursor, for the active sprint.
+ * @param table - the stage table, the built-in one by default.
  * @returns the prompt text.
  */
-export function stagePrompt(spec: StageSpec, cursor: TreadmillCursor): string {
-  return `${stageCommand(spec, cursor)} Execute somente a etapa ${spec.id} da Esteira OpenNjord para o cursor .spec/esteira-state.yaml. `
+export function stagePrompt(spec: StageSpec, cursor: TreadmillCursor, table: readonly StageSpec[] = STAGES): string {
+  const disabled = table.filter(stage => stage.enabled === false).map(stage => stage.id)
+  const skipping = cursor.stage !== undefined && cursor.stage !== spec.id && disabled.includes(cursor.stage)
+  const skipClause = disabled.length === 0 ? ''
+    : ` As etapas ${disabled.join(', ')} estão DESLIGADAS nesta instalação: nunca as execute e, ao avançar o cursor, `
+      + 'pule diretamente para a próxima etapa ligada na ordem da tabela.'
+  const jumpClause = skipping ? ` O cursor está em ${cursor.stage}, que está desligada: avance-o para ${spec.id} sem executar ${cursor.stage}.` : ''
+  return `${stageCommand(spec, cursor)} Execute somente a etapa ${spec.id} da Esteira OpenNjord para o cursor .spec/esteira-state.yaml.${jumpClause}${skipClause} `
     + 'Use as Skills instaladas e preserve todos os gates, artefatos, receipts e paradas humanas do método. '
     + 'Não avance outra etapa e não declare conclusão sem validar os artefatos canônicos.'
+}
+
+/**
+ * The stage the run action executes: the cursor's stage, or the next enabled
+ * stage when the cursor sits on a disabled one.
+ * @param stages - projected stages.
+ * @returns the stage to run, or `undefined` when nothing remains.
+ */
+export function runnableStage(stages: readonly StageView[]): StageView | undefined {
+  const currentIndex = stages.findIndex(stage => stage.current)
+  if (currentIndex < 0) return undefined
+  return stages.slice(currentIndex).find(stage => stage.enabled !== false)
 }
 
 /** The prompt that installs the Treadmill into a project that has no cursor yet. */
@@ -173,6 +196,7 @@ export interface DescribedStage {
   readonly gate: 'manual' | 'auto'
   readonly verdict: boolean
   readonly produces: readonly string[]
+  readonly enabled: boolean
 }
 
 /**
@@ -184,6 +208,6 @@ export function stagesFromHost(stages: readonly DescribedStage[]): StageSpec[] {
   return stages.map(stage => ({
     id: stage.id, label: stage.label, section: stage.section, skill: stage.skill,
     ...stage.args === undefined ? {} : { args: stage.args },
-    gate: stage.gate === 'manual' ? 'gated' : 'auto', emitsVerdict: stage.verdict, produces: stage.produces,
+    gate: stage.gate === 'manual' ? 'gated' : 'auto', emitsVerdict: stage.verdict, produces: stage.produces, enabled: stage.enabled,
   }))
 }

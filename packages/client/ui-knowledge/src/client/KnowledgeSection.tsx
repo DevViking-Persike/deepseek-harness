@@ -58,6 +58,11 @@ export interface KnowledgeInjected {
   writeTreadmillFile: (path: string, content: string, signal: AbortSignal) => Promise<void>
   /** Switch the whole Treadmill on or off through the `treadmill` user setting. */
   setTreadmillEnabled: (enabled: boolean, signal: AbortSignal) => Promise<void>
+  /**
+   * Save one skill or command into the current project's `.dsh/skills`, where
+   * it outranks the harness copy for that project. Resolves to the project path.
+   */
+  saveTreadmillFileToProject: (path: string, content: string, signal: AbortSignal) => Promise<string>
 }
 
 /** The Treadmill installation as the pane shows it. */
@@ -70,6 +75,8 @@ export interface TreadmillInstallation {
 
 /** Which pane is showing. */
 type Pane = 'skills' | 'decisions' | 'docs' | 'treadmill'
+/** One installation file open in the editor, with its save state. */
+interface TreadmillDraft { path: string; body: string; saved: boolean; savedTo?: string; error?: string }
 const TREADMILL_CATEGORIES = ['esteira', 'skills', 'commands', 'rules', 'agents', 'tools', 'integrations'] as const
 type TreadmillCategory = typeof TREADMILL_CATEGORIES[number] | 'other'
 function categoryOf(category: string): TreadmillCategory {
@@ -161,11 +168,12 @@ const NOT_A_RECORD = new Set(['AGENTS.md', 'CLAUDE.md', 'README.md'])
  * @returns the three-pane section.
  */
 export function KnowledgeSection({
-  listSkills, listDir, readFile, editFile, describeTreadmill, readTreadmillFile, writeTreadmillFile, setTreadmillEnabled, t,
+  listSkills, listDir, readFile, editFile, describeTreadmill, readTreadmillFile, writeTreadmillFile,
+  setTreadmillEnabled, saveTreadmillFileToProject, t,
 }: KnowledgeSectionProps) {
   const [pane, setPane] = useState<Pane>('skills')
   const [treadmill, setTreadmill] = useState<Loaded<TreadmillInstallation>>({ kind: 'loading' })
-  const [draft, setDraft] = useState<{ path: string; body: string; saved: boolean; error?: string } | undefined>(undefined)
+  const [draft, setDraft] = useState<TreadmillDraft | undefined>(undefined)
   const [treadmillGeneration, setTreadmillGeneration] = useState(0)
 
   useEffect(() => {
@@ -207,6 +215,15 @@ export function KnowledgeSection({
       (error: unknown) => { setTreadmill({ kind: 'failed', reason: failureText(error) }) },
     )
   }, [writeTreadmillFile])
+
+  const saveDraftToProject = useCallback(() => {
+    if (draft === undefined) return
+    const current = draft
+    saveTreadmillFileToProject(current.path, current.body, new AbortController().signal).then(
+      (path) => { setDraft({ ...current, saved: false, savedTo: path }) },
+      (error: unknown) => { setDraft({ ...current, saved: false, error: failureText(error) }) },
+    )
+  }, [draft, saveTreadmillFileToProject])
 
   const toggleTreadmill = useCallback((enabled: boolean) => {
     setTreadmillEnabled(enabled, new AbortController().signal).then(
@@ -303,12 +320,19 @@ export function KnowledgeSection({
           className={css.editor}
           value={draft.body}
           spellCheck={false}
-          onChange={(event) => { setDraft({ ...draft, body: event.target.value, saved: false }) }}
+          onChange={(event) => {
+            const { savedTo: _savedTo, ...rest } = draft
+            setDraft({ ...rest, body: event.target.value, saved: false })
+          }}
         />
         <div className={css.rowActions}>
           <button type="button" className={css.openButton} onClick={saveDraft}>{t('treadmill.save')}</button>
+          {(draft.path.startsWith('skills/') || draft.path.startsWith('commands/')) && (
+            <button type="button" className={css.openButton} onClick={saveDraftToProject}>{t('treadmill.saveToProject')}</button>
+          )}
           <button type="button" className={css.openButton} onClick={() => { setDraft(undefined) }}>{t('treadmill.cancel')}</button>
           {draft.saved && <span className={css.note} role="status">{t('treadmill.saved')}</span>}
+          {draft.savedTo !== undefined && <span className={css.note} role="status">{t('treadmill.savedToProject', { path: draft.savedTo })}</span>}
           {draft.error !== undefined && <span className={css.note} role="alert">{t('failed', { reason: draft.error })}</span>}
         </div>
       </div>

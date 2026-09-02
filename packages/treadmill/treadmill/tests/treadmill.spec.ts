@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SkillRegistry from '@deepseek-ai/dsh-skill'
-import Treadmill, { parsePipeline, PIPELINE_FILE, TreadmillError, TREADMILL_ASSETS } from '../src/index.ts'
+import Treadmill, { parsePipeline, PIPELINE_FILE, setStageEnabledInTable, TreadmillError, TREADMILL_ASSETS } from '../src/index.ts'
 import * as Invariant from '../src/invariant.ts'
 
 const TREADMILL_SKILLS = [
-  'arquitetura', 'deploy', 'desenvolvimento', 'discovery', 'qa', 'qa-rpa', 'redteam', 'review-codigo-subagents', 'scaffold-spec', 'seguranca',
+  'arquitetura', 'commit-push', 'deploy', 'desenvolvimento', 'discovery', 'qa', 'qa-rpa', 'redteam', 'review-codigo-subagents', 'scaffold-spec', 'seguranca',
 ]
 const COMMAND_SKILLS = ['check-rules', 'dead-code-cleansing', 'refactor', 'responsive-pass', 'tick-esteira']
 
@@ -36,7 +36,7 @@ describe('dsh-treadmill plugin', () => {
     const description = await ctx.treadmill.describe()
     expect(description).toMatchObject({ root, enabled: true })
     expect(description.stages.map(stage => stage.id)).toEqual([
-      '00-discovery', 'plano', '00s', '10a', '20', '25', '10b', '30-qa-rpa', '30-qa', '40-redteam', '40-seguranca', 'deploy',
+      '00-discovery', 'plano', '00s', '10a', '20', '25', '10b', '30-qa-rpa', '30-qa', '40-redteam', '40-seguranca', 'deploy', 'commit-push',
     ])
     expect(description.files.map(file => file.category)).toEqual(expect.arrayContaining(['skills', 'rules', 'commands', 'tools', 'esteira']))
     const names = new Set((await ctx.skills.list({ cwd: project })).map(skill => skill.name))
@@ -51,10 +51,14 @@ describe('dsh-treadmill plugin', () => {
   it('keeps edits across a reseed and refuses paths outside the root', async () => {
     const root = join(await mkdtemp(join(tmpdir(), 'dsh-treadmill-')), 'install')
     const first = await boot(root)
+    await first.treadmill.describe()
+    // A skill missing from an older root arrives on the next boot without touching the rest.
+    await rm(join(root, 'skills/commit-push'), { recursive: true })
     await first.treadmill.writeFile('rules/eng/99-local.md', '# Local rule\n')
     await first.treadmill.writeFile('skills/discovery/SKILL.md', '---\nname: discovery\ndescription: edited\n---\nEdited.\n')
     const second = await boot(root)
     expect(await second.treadmill.readFile('rules/eng/99-local.md')).toBe('# Local rule\n')
+    expect(await second.treadmill.readFile('skills/commit-push/SKILL.md')).toContain('name: commit-push')
     expect(second.treadmill.promptText()).toContain('99-local.md — Local rule')
     expect((await second.skills.list({ cwd: root })).find(skill => skill.name === 'discovery')?.description).toBe('edited')
     await expect(second.treadmill.readFile('../outside.md')).rejects.toBeInstanceOf(TreadmillError)
@@ -93,5 +97,20 @@ describe('dsh-treadmill plugin', () => {
     const dispose = await Invariant.apply(ctx)
     expect(typeof dispose).toBe('function')
     expect(registered).toEqual(['@deepseek-ai/dsh-treadmill'])
+  })
+})
+
+describe('setStageEnabledInTable', () => {
+  it('flips one stage while keeping comments and the other stages', async () => {
+    const root = join(await mkdtemp(join(tmpdir(), 'dsh-treadmill-')), 'install')
+    const ctx = await boot(root)
+    const before = await ctx.treadmill.readFile(PIPELINE_FILE)
+    const after = setStageEnabledInTable(before, 'deploy', false)
+    expect(after).toContain('# pipeline.yaml')
+    expect(parsePipeline(after).find(stage => stage.id === 'deploy')?.enabled).toBe(false)
+    expect(parsePipeline(after).filter(stage => stage.enabled).length).toBe(parsePipeline(before).filter(stage => stage.enabled).length - 1)
+    expect(() => setStageEnabledInTable(before, 'nope', true)).toThrow(TreadmillError)
+    await ctx.treadmill.setStageEnabled('commit-push', true)
+    expect((await ctx.treadmill.stages()).stages.find(stage => stage.id === 'commit-push')?.enabled).toBe(true)
   })
 })

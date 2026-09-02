@@ -244,12 +244,18 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
     },
     treadmill: {
       async describe(request) {
-        return { rpcId: request.rpcId, result: { ok: true, value: { root: '/t', enabled: true, stages: [], files: [] } } }
+        return { rpcId: request.rpcId, result: { ok: true, value: { root: '/t', enabled: true, tableSource: 'global', stages: [], files: [] } } }
       },
       async readFile(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path, content: '' } } }
       },
       async writeFile(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path } } }
+      },
+      async setStageEnabled(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { id: request.payload.id, enabled: request.payload.enabled, tableSource: 'global' } } }
+      },
+      async saveToProject(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { path: request.payload.path } } }
       },
     },

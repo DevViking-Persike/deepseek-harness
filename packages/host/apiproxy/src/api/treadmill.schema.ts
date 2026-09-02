@@ -9,12 +9,14 @@ import type { Wire } from './rpc.schema.ts'
 
 /** treadmill.describe request payload (empty; extend in place). */
 export const treadmillDescribeRequestSchema = z.object({
+  sessionId: z.string().optional(),
 }) satisfies z.ZodType<Wire<RequestPayload<'treadmill.describe'>>>
 
 /** treadmill.describe response value. */
 export const treadmillDescribeValueSchema = z.object({
   root: z.string(),
   enabled: z.boolean(),
+  tableSource: z.union([z.literal('project'), z.literal('global')]),
   stages: z.array(z.object({
     id: z.string(),
     label: z.string(),
@@ -24,6 +26,7 @@ export const treadmillDescribeValueSchema = z.object({
     gate: z.union([z.literal('manual'), z.literal('auto')]),
     verdict: z.boolean(),
     produces: z.array(z.string()),
+    enabled: z.boolean(),
   })),
   pipelineError: z.string().optional(),
   files: z.array(z.object({ path: z.string(), category: z.string(), size: z.number() })),
@@ -50,3 +53,29 @@ export const treadmillWriteFileRequestSchema = z.object({
 export const treadmillWriteFileValueSchema = z.object({
   path: z.string(),
 }) satisfies z.ZodType<Wire<ResponseValue<'treadmill.writeFile'>>>
+
+/** treadmill.setStageEnabled request payload. */
+export const treadmillSetStageEnabledRequestSchema = z.object({
+  sessionId: z.string().optional(),
+  id: z.string().min(1),
+  enabled: z.boolean(),
+}) satisfies z.ZodType<Wire<RequestPayload<'treadmill.setStageEnabled'>>>
+
+/** treadmill.setStageEnabled response value. */
+export const treadmillSetStageEnabledValueSchema = z.object({
+  id: z.string(),
+  enabled: z.boolean(),
+  tableSource: z.union([z.literal('project'), z.literal('global')]),
+}) satisfies z.ZodType<Wire<ResponseValue<'treadmill.setStageEnabled'>>>
+
+/** treadmill.saveToProject request payload. */
+export const treadmillSaveToProjectRequestSchema = z.object({
+  sessionId: z.string().min(1),
+  path: z.string().min(1),
+  content: z.string(),
+}) satisfies z.ZodType<Wire<RequestPayload<'treadmill.saveToProject'>>>
+
+/** treadmill.saveToProject response value: the project-relative path written. */
+export const treadmillSaveToProjectValueSchema = z.object({
+  path: z.string(),
+}) satisfies z.ZodType<Wire<ResponseValue<'treadmill.saveToProject'>>>

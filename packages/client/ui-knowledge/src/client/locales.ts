@@ -30,6 +30,9 @@ export type KnowledgeKey =
   | 'treadmill.newName'
   | 'treadmill.create'
   | 'treadmill.invalidName'
+  | 'treadmill.saveToProject'
+  | 'treadmill.savedToProject'
+  | 'treadmill.noProject'
   | 'loading'
   | 'failed'
   | 'empty'
@@ -80,6 +83,9 @@ export const zh: Record<KnowledgeKey, string> = {
   'treadmill.newName': '名称（小写字母、数字和连字符）',
   'treadmill.create': '创建',
   'treadmill.invalidName': '名称只能包含小写字母、数字和连字符。',
+  'treadmill.saveToProject': '保存到项目',
+  'treadmill.savedToProject': '已保存到项目：{path}（在该项目中覆盖 harness 的副本）',
+  'treadmill.noProject': '没有当前项目会话；先打开一个项目。',
   'loading': '正在加载…',
   'failed': '加载失败：{reason}',
   'empty': '这里还没有内容。',
@@ -124,6 +130,9 @@ export const en: Record<KnowledgeKey, string> = {
   'treadmill.newName': 'Name (lowercase letters, digits, and hyphens)',
   'treadmill.create': 'Create',
   'treadmill.invalidName': 'A name uses only lowercase letters, digits, and hyphens.',
+  'treadmill.saveToProject': 'Save to project',
+  'treadmill.savedToProject': 'Saved to the project as {path}; it outranks the harness copy there.',
+  'treadmill.noProject': 'No current project session; open a project first.',
   'loading': 'Loading…',
   'failed': 'Loading failed: {reason}',
   'empty': 'Nothing here yet.',

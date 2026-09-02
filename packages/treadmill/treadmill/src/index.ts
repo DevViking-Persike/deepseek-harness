@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url'
 import { Service, type Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type Schema from '@deepseek-ai/schemastery'
-import { parse as parseYaml } from 'yaml'
+import { isMap, isSeq, parse as parseYaml, parseDocument } from 'yaml'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
@@ -73,6 +73,8 @@ export interface TreadmillStage {
   /** `manual` stages stop for a human decision before the process advances. */
   readonly gate: 'manual' | 'auto'
   readonly verdict: boolean
+  /** A disabled stage stays in the table but is skipped: the cursor advances past it. */
+  readonly enabled: boolean
   /** Project directories the stage writes, relative to the project root. */
   readonly produces: readonly string[]
 }
@@ -118,6 +120,7 @@ const StageSchema = z.object({
   gate: z.union(['manual', 'auto'] as const).default('auto'),
   verdict: z.boolean().default(false),
   produces: z.array(z.string()).default([]),
+  enabled: z.boolean().default(true),
 })
 const PipelineSchema = z.object({
   schema: z.number().required(),
@@ -144,9 +147,29 @@ export function parsePipeline(text: string): TreadmillStage[] {
     return {
       id, label: stage.label, section: stage.section, skill: stage.skill,
       ...stage.args.length === 0 ? {} : { args: stage.args },
-      gate: stage.gate, verdict: stage.verdict, produces: stage.produces,
+      gate: stage.gate, verdict: stage.verdict, produces: stage.produces, enabled: stage.enabled,
     }
   })
+}
+
+/**
+ * Switch one stage on or off in a stage table's YAML text, keeping comments
+ * and layout. Shared by the harness default table and a project's own copy.
+ * @param text - `pipeline.yaml` or `.spec/treadmill.yaml` content.
+ * @param id - stage id as the table lists it.
+ * @param enabled - the new state.
+ * @returns the rewritten YAML.
+ * @throws TreadmillError `not-found` when the table lists no such stage.
+ */
+export function setStageEnabledInTable(text: string, id: string, enabled: boolean): string {
+  const document = parseDocument(text)
+  const stages = document.get('stages')
+  const stage = isSeq(stages)
+    ? stages.items.find(item => isMap(item) && String(item.get('id')) === id)
+    : undefined
+  if (stage === undefined || !isMap(stage)) throw new TreadmillError('not-found', `stage "${id}" is not in the stage table`)
+  stage.set('enabled', enabled)
+  return document.toString()
 }
 
 /** Host-owned installation: seeding, file access, stage table, and the rules index. */
@@ -214,17 +237,27 @@ export class TreadmillService extends Service {
   }
 
   /**
-   * Copy every top-level entry of the vendored installation that the root
-   * lacks. Existing entries are never overwritten, so edits survive updates
-   * while a new category still arrives.
+   * Copy what the vendored installation has and the root lacks: every
+   * top-level category, and inside an existing category every direct child
+   * (a skill directory, a rule file, a command). Existing entries are never
+   * overwritten, so edits survive updates while a new skill still arrives.
    */
   private async seed(): Promise<void> {
     await mkdir(this.root, { recursive: true })
     for (const entry of await readdir(TREADMILL_ASSETS, { withFileTypes: true })) {
+      const source = join(TREADMILL_ASSETS, entry.name)
       const target = join(this.root, entry.name)
-      const present = await stat(target).then(() => true, () => false)
-      if (!present) await cp(join(TREADMILL_ASSETS, entry.name), target, { recursive: true })
+      if (!await this.copyMissing(source, target)) continue
+      if (!entry.isDirectory()) continue
+      for (const child of await readdir(source)) await this.copyMissing(join(source, child), join(target, child))
     }
+  }
+
+  /** Copy `source` to `target` unless `target` exists; `true` when it already existed. */
+  private async copyMissing(source: string, target: string): Promise<boolean> {
+    const present = await stat(target).then(() => true, () => false)
+    if (!present) await cp(source, target, { recursive: true })
+    return present
   }
 
   private gated(inner: SkillProvider): SkillProvider {
@@ -282,6 +315,17 @@ export class TreadmillService extends Service {
     await writeFile(absolute, content, 'utf8')
     await this.refreshRulesIndex()
     this.invalidate?.()
+  }
+
+  /**
+   * Switch one stage on or off in `esteira/pipeline.yaml`, keeping the file's
+   * comments and layout. A disabled stage stays listed and is skipped by the
+   * Treadmill view and the stage prompts.
+   * @param id - stage id as the table lists it.
+   * @param enabled - the new state.
+   */
+  async setStageEnabled(id: string, enabled: boolean): Promise<void> {
+    await this.writeFile(PIPELINE_FILE, setStageEnabledInTable(await this.readFile(PIPELINE_FILE), id, enabled))
   }
 
   /**

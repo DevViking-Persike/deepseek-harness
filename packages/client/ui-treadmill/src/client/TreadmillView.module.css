@@ -113,7 +113,8 @@
 }
 
 /* Status colour: one custom property per state, read by the dot, the badge, and the chips. */
-[data-status='pending'] { --treadmill-status: var(--dsw-alias-border-l3); }
+[data-status='pending'],
+[data-status='skipped'] { --treadmill-status: var(--dsw-alias-border-l3); }
 [data-status='running'] { --treadmill-status: var(--dsw-alias-state-business-primary); }
 [data-status='awaiting-user'],
 [data-status='awaiting-gate'] { --treadmill-status: var(--dsw-alias-state-warn-primary); }
@@ -232,6 +233,10 @@
 }
 .label {
   font: var(--dsw-font-base-strong-16);
+}
+.node[data-status='skipped'] .label {
+  color: var(--dsw-alias-label-tertiary);
+  text-decoration: line-through;
 }
 .node[data-current='true'] .label {
   color: var(--dsw-alias-state-business-primary);
@@ -422,4 +427,11 @@
   .modelList li {
     flex-direction: column;
   }
+}
+.toggle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xs-13);
 }

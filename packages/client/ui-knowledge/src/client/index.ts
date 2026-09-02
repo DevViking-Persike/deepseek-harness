@@ -126,6 +126,13 @@ export function apply(ctx: ClientContext): void {
       const response = await api.treadmill.writeFile({ path, content }, signal)
       if (!response.result.ok) throw knowledgeFailure(response.result.error)
     },
+    saveTreadmillFileToProject: async (path, content, signal) => {
+      const sessionId = currentSession()
+      if (sessionId === undefined) throw new Error(t('treadmill.noProject'))
+      const response = await api.treadmill.saveToProject({ sessionId, path, content }, signal)
+      if (!response.result.ok) throw knowledgeFailure(response.result.error)
+      return response.result.value.path
+    },
     setTreadmillEnabled: async (enabled, signal) => {
       const response = await api.settings.update({ ns: 'treadmill', patch: { enabled } }, signal)
       if (!response.result.ok) throw knowledgeFailure(response.result.error)

@@ -6,12 +6,14 @@ import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { TreadmillKey } from './locales.ts'
 // Type-only: merges the tokenUsage key into SessionProjectionMap for useProjection.
 import type {} from '@deepseek-ai/dsh-token-meter/client'
-import { pipelineStatus, projectStages, stageCommand, type TreadmillCursor, type StageSpec, type StageView } from './stages.ts'
+import { pipelineStatus, projectStages, runnableStage, stageCommand, type TreadmillCursor, type StageSpec, type StageView } from './stages.ts'
 
 /** The installation facts the view needs from the host. */
 export interface TreadmillInstallation {
   readonly enabled: boolean
   readonly stages: readonly StageSpec[]
+  /** Whether the table came from the project's `.spec/treadmill.yaml` or the harness default. */
+  readonly tableSource: 'project' | 'global'
   readonly pipelineError?: string
 }
 import css from './TreadmillView.module.css'
@@ -26,6 +28,8 @@ export interface TreadmillViewInjected {
   installTreadmill: (sessionId: SessionId) => Promise<void>
   /** Read the harness-owned installation: enabled state and stage table. */
   loadInstallation: (signal: AbortSignal) => Promise<TreadmillInstallation>
+  /** Switch one stage on or off in the installation's stage table. */
+  setStageEnabled: (id: string, enabled: boolean) => Promise<void>
 }
 type Props = ConvViewProps & PropsLocale<'treadmill'> & InjectFace<TreadmillViewInjected>
 
@@ -49,8 +53,9 @@ function sectionLabel(stage: StageSpec, t: Props['t']): string {
  * @returns the view.
  */
 export function TreadmillView({
-  sessionId, useSession, useProjection, loadCursor, runStage, installTreadmill, loadInstallation, t,
+  sessionId, useSession, useProjection, loadCursor, runStage, installTreadmill, loadInstallation, setStageEnabled, t,
 }: Props) {
+  const [installationGeneration, setInstallationGeneration] = useState(0)
   const session = useSession(snapshot => snapshot)
   const usage = useProjection('tokenUsage')
   const [installation, setInstallation] = useState<TreadmillInstallation | undefined>(undefined)
@@ -58,7 +63,7 @@ export function TreadmillView({
     const abort = new AbortController()
     void loadInstallation(abort.signal).then(setInstallation).catch((reason: unknown) => { setLoadError(describe(reason)) })
     return () => { abort.abort() }
-  }, [loadInstallation])
+  }, [loadInstallation, installationGeneration])
   const [cursor, setCursor] = useState<TreadmillCursor | null | undefined>(undefined)
   const [loadError, setLoadError] = useState<string | undefined>()
   const [runError, setRunError] = useState<string | undefined>()
@@ -100,8 +105,9 @@ export function TreadmillView({
   }
   if (cursor === undefined || installation === undefined) return <div className={css.empty}>…</div>
   const current = stages.find(stage => stage.current)
+  const runnable = runnableStage(stages)
   const selected = stages.find(stage => stage.id === selectedId)
-  const done = stages.filter(stage => stage.status === 'done').length
+  const done = stages.filter(stage => stage.status === 'done' || stage.status === 'skipped').length
   const status = pipelineStatus(stages)
   const execute = (stage: StageSpec) => {
     if (busy) return
@@ -110,6 +116,12 @@ export function TreadmillView({
     void runStage(sessionId, stage, cursor)
       .catch((reason: unknown) => { setRunError(describe(reason)) })
       .finally(() => { setBusy(false) })
+  }
+  const toggleStage = (stage: StageView, enabled: boolean) => {
+    setRunError(undefined)
+    void setStageEnabled(stage.id, enabled)
+      .then(() => { setInstallationGeneration(value => value + 1) })
+      .catch((reason: unknown) => { setRunError(describe(reason)) })
   }
   const percent = stages.length === 0 ? 0 : Math.round((done / stages.length) * 100)
   const backlogDone = cursor.backlog.filter(item => item.status === 'done').length
@@ -124,15 +136,16 @@ export function TreadmillView({
               <p className={css.meta}>
                 {t('sprint')} {cursor.activeSprint ?? '—'} · {t('runId')} {cursor.runId ?? '—'} · {t('revision')} {cursor.revision ?? '—'}
               </p>
+              <p className={css.meta}>{t(`table.${installation.tableSource}`)}</p>
             </div>
             <div className={css.actions}>
               <button
                 type="button"
                 className={css.primary}
-                disabled={busy || session.running || current === undefined}
-                onClick={() => { if (current !== undefined) execute(current) }}
+                disabled={busy || session.running || runnable === undefined}
+                onClick={() => { if (runnable !== undefined) execute(runnable) }}
               >
-                {busy || session.running ? t('running') : t('run')}
+                {busy || session.running ? t('running') : runnable !== undefined && runnable !== current ? t('skipTo', { stage: stageLabel(runnable, t) }) : t('run')}
               </button>
             </div>
           </header>
@@ -175,6 +188,7 @@ export function TreadmillView({
             busy={busy || session.running}
             t={t}
             onRun={() => { execute(selected) }}
+            onToggle={(enabled) => { toggleStage(selected, enabled) }}
             onClose={() => { setSelectedId(null) }}
           />
         )}
@@ -237,10 +251,11 @@ interface StagePanelProps {
   busy: boolean
   t: Props['t']
   onRun: () => void
+  onToggle: (enabled: boolean) => void
   onClose: () => void
 }
 
-function StagePanel({ stage, cursor, busy, t, onRun, onClose }: StagePanelProps) {
+function StagePanel({ stage, cursor, busy, t, onRun, onToggle, onClose }: StagePanelProps) {
   return (
     <aside className={css.panel} aria-label={t('panel')}>
       <header className={css.panelHead}>
@@ -269,7 +284,13 @@ function StagePanel({ stage, cursor, busy, t, onRun, onClose }: StagePanelProps)
           <dd>{stage.produces.length === 0 ? t('nothingProduced') : stage.produces.map(path => <code key={path}>{path}</code>)}</dd>
         </div>
       </dl>
-      <button type="button" className={css.ghost} disabled={busy} onClick={onRun}>{busy ? t('running') : t('runStage')}</button>
+      <label className={css.toggle}>
+        <input type="checkbox" checked={stage.enabled !== false} onChange={(event) => { onToggle(event.target.checked) }} />
+        {stage.enabled === false ? t('stageDisabled') : t('stageEnabled')}
+      </label>
+      <button type="button" className={css.ghost} disabled={busy || stage.enabled === false} onClick={onRun}>
+        {busy ? t('running') : t('runStage')}
+      </button>
     </aside>
   )
 }

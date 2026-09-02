@@ -7,7 +7,11 @@
 #
 # Campos: id (único), label, section, skill (slug servido pelo harness),
 # args (argumento fixo; "sprint" recebe a sprint ativa), gate (manual | auto),
-# verdict (a etapa emite veredito), produces (diretórios do projeto que ela escreve).
+# verdict (a etapa emite veredito), produces (diretórios do projeto que ela escreve),
+# enabled (false mantém a etapa listada mas o cursor pula por cima dela).
+#
+# Cada projeto pode ter a sua própria cópia desta tabela em .spec/treadmill.yaml;
+# ela é criada quando você liga ou desliga uma etapa na aba Treadmill do projeto.
 schema: 1
 stages:
   - id: 00-discovery
@@ -97,3 +101,11 @@ stages:
     gate: manual
     verdict: false
     produces: []
+  - id: commit-push
+    label: Commit & push
+    section: Deploy
+    skill: commit-push
+    gate: manual
+    verdict: false
+    produces: []
+    enabled: false

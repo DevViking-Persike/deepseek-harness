@@ -23,6 +23,12 @@ export function apply(ctx: ClientContext): void {
     const result = await session.prompt([{ type: 'text', text }], 'queue')
     if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
   }
+  /** The effective stage table of one session's project, so a stage prompt can name the disabled stages. */
+  const loadTable = async (id: SessionId): Promise<StageSpec[]> => {
+    const response = await api.treadmill.describe({ sessionId: id })
+    if (!response.result.ok) throw new Error(`${response.result.error.code}: ${response.result.error.message}`)
+    return stagesFromHost(response.result.value.stages)
+  }
   ctx.slots.inject('conversation.view', () => ctx.slots.register({
     name: 'conversation.view', id: 'treadmill', order: 30, locale: NS,
     label: () => ctx.locale.bind(NS)('view.treadmill'),
@@ -35,13 +41,20 @@ export function apply(ctx: ClientContext): void {
         }
         return parseCursor(response.result.value.content)
       },
-      runStage: (id: SessionId, stage: StageSpec, cursor: TreadmillCursor) => submit(id, stagePrompt(stage, cursor)),
+      runStage: async (id: SessionId, stage: StageSpec, cursor: TreadmillCursor) => {
+        const table = await loadTable(id)
+        await submit(id, stagePrompt(stage, cursor, table))
+      },
+      setStageEnabled: async (stageId: string, enabled: boolean) => {
+        const response = await api.treadmill.setStageEnabled({ sessionId, id: stageId, enabled })
+        if (!response.result.ok) throw new Error(`${response.result.error.code}: ${response.result.error.message}`)
+      },
       installTreadmill: (id: SessionId) => submit(id, INSTALL_PROMPT),
       loadInstallation: async (signal: AbortSignal) => {
-        const response = await api.treadmill.describe({}, signal)
+        const response = await api.treadmill.describe({ sessionId }, signal)
         if (!response.result.ok) throw new Error(`${response.result.error.code}: ${response.result.error.message}`)
-        const { enabled, stages, pipelineError } = response.result.value
-        return { enabled, stages: stagesFromHost(stages), ...pipelineError === undefined ? {} : { pipelineError } }
+        const { enabled, stages, pipelineError, tableSource } = response.result.value
+        return { enabled, stages: stagesFromHost(stages), tableSource, ...pipelineError === undefined ? {} : { pipelineError } }
       },
     }),
   }, TreadmillView))

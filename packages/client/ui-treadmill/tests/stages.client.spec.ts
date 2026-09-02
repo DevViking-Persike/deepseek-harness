@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseCursor, pipelineStatus, projectStages, STAGES, stageCommand, stagePrompt } from '../src/client/stages.ts'
+import { parseCursor, pipelineStatus, projectStages, runnableStage, STAGES, stageCommand, stagePrompt } from '../src/client/stages.ts'
 
 const CURSOR = `# comment
 schema: 2
@@ -85,5 +85,36 @@ describe('stagePrompt', () => {
   it('passes the active sprint to the sprint discovery and omits it when unknown', () => {
     expect(stagePrompt(spec('00s'), cursor)).toMatch(/^\/discovery sprint 46-10 /)
     expect(stagePrompt(spec('00s'), { ...cursor, activeSprint: undefined })).toMatch(/^\/discovery Execute/)
+  })
+})
+
+describe('disabled stages', () => {
+  const cursor = parseCursor(CURSOR)
+  const table = STAGES.map(stage => stage.id === '40-redteam' || stage.id === 'deploy' ? { ...stage, enabled: false } : stage)
+
+  it('shows a disabled stage as skipped wherever it sits and counts it as progress', () => {
+    const stages = projectStages(cursor, false, table)
+    expect(stages.find(stage => stage.id === '40-redteam')?.status).toBe('skipped')
+    expect(stages.find(stage => stage.id === 'deploy')?.status).toBe('skipped')
+    expect(runnableStage(stages)?.id).toBe('00s')
+    expect(pipelineStatus(projectStages({ ...cursor, stage: '40-seguranca' }, false, table))).toBe('awaiting-gate')
+  })
+
+  it('runs the next enabled stage when the cursor sits on a disabled one and says so in the prompt', () => {
+    const stages = projectStages({ ...cursor, stage: '40-redteam' }, false, table)
+    expect(stages.find(stage => stage.current)?.status).toBe('skipped')
+    const next = runnableStage(stages)
+    expect(next?.id).toBe('40-seguranca')
+    if (next === undefined) throw new Error('no runnable stage')
+    const prompt = stagePrompt(next, { ...cursor, stage: '40-redteam' }, table)
+    expect(prompt).toContain('O cursor está em 40-redteam, que está desligada: avance-o para 40-seguranca sem executar 40-redteam.')
+    expect(prompt).toContain('As etapas 40-redteam, deploy estão DESLIGADAS')
+    expect(runnableStage(projectStages({ ...cursor, stage: 'deploy' }, false, table))).toBeUndefined()
+  })
+
+  it('keeps the prompt free of skip clauses when every stage is enabled', () => {
+    const spec = STAGES[0]
+    if (spec === undefined) throw new Error('no stage')
+    expect(stagePrompt(spec, cursor)).not.toContain('DESLIGADAS')
   })
 })

@@ -4,9 +4,13 @@ This browser plugin adds an Esteira conversation view after Docker. It reads the
 
 The view does not own cursor transitions. `.spec/esteira-state.yaml` remains authoritative, while the stage table and the stage methods come from the Treadmill installation `@deepseek-ai/dsh-treadmill` serves (`treadmill.describe`); a disabled Treadmill shows one notice instead of the graph. A project without a cursor gets one **Install the Treadmill in this project** action, which submits `/scaffold-spec criar` constrained to create only `.spec/` and `docs/adrs/`.
 
+## Stage switches
+
+The selected-stage panel carries an **enabled** switch. Turning a stage off writes the project's `.spec/treadmill.yaml` (created from the effective table on the first switch), shows the stage as skipped, and makes the run action jump to the next enabled stage when the cursor sits on a disabled one. The header names whether the table is the project's own or the harness default.
+
 ## Model Experience
 
-The plugin adds no prompt section or tool schema. Clicking **Run current stage**, **Run this stage**, or **Install the Treadmill in this project** appends one ordinary user prompt beginning with the selected `/skill`; the Session retains its complete Agent preset and the resulting request, tool calls, usage, and output remain durable in the Session log.
+The plugin adds no prompt section or tool schema. Clicking **Run current stage**, **Run this stage**, or **Install the Treadmill in this project** appends one ordinary user prompt beginning with the selected `/skill`, naming the disabled stages so the Skill advances the cursor past them; the Session retains its complete Agent preset and the resulting request, tool calls, usage, and output remain durable in the Session log.
 
 ## Known Limitations and Deferred Work
 

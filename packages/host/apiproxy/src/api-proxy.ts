@@ -87,7 +87,7 @@ import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 // Value edge: the docker domain narrows the seam's provider-selection failures
 // onto one wire code; the import also resolves `ctx.get('docker')`.
 import { DockerError } from '@deepseek-ai/dsh-docker'
-import { TreadmillError } from '@deepseek-ai/dsh-treadmill'
+import { parsePipeline, PIPELINE_FILE, setStageEnabledInTable, TreadmillError } from '@deepseek-ai/dsh-treadmill'
 import type { DockerContainer, DockerImage } from '@deepseek-ai/dsh-docker'
 // Value edge: the git domain narrows the seam's provider-selection and
 // repository failures onto its own wire codes; the import also resolves
@@ -1308,6 +1308,24 @@ function editorAbsent(): RpcError {
   }
 }
 
+/** The project's own stage table, relative to its root; absent means the harness default table applies. */
+const PROJECT_TABLE = '.spec/treadmill.yaml'
+
+/**
+ * Where an installation skill or command lives when saved into a project:
+ * the project `.dsh/skills` root, which outranks the harness copy there. A
+ * command becomes a flat skill file; every other installation path is refused.
+ * @param path - installation-relative path.
+ * @returns the project-relative path, or `undefined` when not a skill or command.
+ */
+function projectSkillPath(path: string): string | undefined {
+  const skill = /^skills\/([a-z0-9-]+)\/(.+)$/.exec(path)
+  if (skill !== null) return `.dsh/skills/${skill[1]}/${skill[2]}`
+  const command = /^commands\/([a-z0-9-]+\.md)$/.exec(path)
+  if (command !== null) return `.dsh/skills/${command[1]}`
+  return undefined
+}
+
 /** The wire refusal every treadmill.* row answers when no composition mounts the Treadmill service. */
 function treadmillAbsent(): RpcError {
   return {
@@ -1500,6 +1518,25 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
   const dockerComposeOutputMaxChars = defaults.dockerComposeOutputMaxChars ?? DEFAULT_DOCKER_COMPOSE_OUTPUT_MAX_CHARS
   const dockerComposeBrowseMaxEntries = defaults.dockerComposeBrowseMaxEntries
     ?? DEFAULT_DOCKER_COMPOSE_BROWSE_MAX_ENTRIES
+
+  /**
+   * The addressed session's own stage table, read through the sandboxed fs
+   * seam; `undefined` without a session, a seam, or the file.
+   */
+  const projectTable = async (
+    sessionId: string | undefined,
+    signal: AbortSignal,
+  ): Promise<{ target: FsTarget; text: string } | undefined> => {
+    const fs = ctx.get('fs')
+    if (sessionId === undefined || fs === undefined) return undefined
+    const target = await editorTarget(fs, await editorRoot(ctx, fs, sessionId, signal), PROJECT_TABLE, signal)
+    try {
+      return { target, text: await fs.readText(target, signal) }
+    } catch (error: unknown) {
+      if (error instanceof FsError && error.code === 'FS_NOT_FOUND') return undefined
+      throw error
+    }
+  }
   /** The seed model each create/resume declares; re-read so it never goes stale. */
   const agentOptions = (): AgentOptions => {
     const { provider, model } = defaults.defaultModelSelection()
@@ -3762,10 +3799,21 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       // The installation is host-owned and outside every workspace, so the
       // service, not the sandboxed fs seam, reads and writes it; the service
       // refuses any path that leaves its root.
-      async describe(request) {
+      async describe(request, signal) {
         const treadmill = ctx.get('treadmill')
         if (treadmill === undefined) return err(request, treadmillAbsent())
-        return ok(request, await treadmill.describe())
+        const description = await treadmill.describe()
+        const project = await projectTable(request.payload.sessionId, signal)
+        if (project === undefined) return ok(request, { ...description, tableSource: 'global' })
+        try {
+          const { pipelineError: _global, ...rest } = description
+          return ok(request, { ...rest, tableSource: 'project', stages: parsePipeline(project.text) })
+        } catch (error: unknown) {
+          return ok(request, {
+            ...description, tableSource: 'project', stages: [],
+            pipelineError: `${PROJECT_TABLE}: ${error instanceof Error ? error.message : String(error)}`,
+          })
+        }
       },
       async readFile(request) {
         const treadmill = ctx.get('treadmill')
@@ -3782,6 +3830,46 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         try {
           await treadmill.writeFile(request.payload.path, request.payload.content)
           return ok(request, { path: request.payload.path })
+        } catch (error: unknown) {
+          return err(request, treadmillError(error))
+        }
+      },
+      async setStageEnabled(request, signal) {
+        const treadmill = ctx.get('treadmill')
+        if (treadmill === undefined) return err(request, treadmillAbsent())
+        const { sessionId, id, enabled } = request.payload
+        try {
+          if (sessionId === undefined) {
+            await treadmill.setStageEnabled(id, enabled)
+            return ok(request, { id, enabled, tableSource: 'global' })
+          }
+          // The project's own table starts as a copy of the effective table,
+          // so the first switch records every stage, not just the one flipped.
+          const fs = ctx.get('fs')
+          if (fs === undefined) return err(request, editorAbsent())
+          const project = await projectTable(sessionId, signal)
+          const text = project?.text ?? await treadmill.readFile(PIPELINE_FILE)
+          const target = project?.target ?? await editorTarget(fs, await editorRoot(ctx, fs, sessionId, signal), PROJECT_TABLE, signal)
+          await fs.writeText(target, setStageEnabledInTable(text, id, enabled), undefined, signal, editorPolicy(ctx, sessionId))
+          return ok(request, { id, enabled, tableSource: 'project' })
+        } catch (error: unknown) {
+          return err(request, treadmillError(error))
+        }
+      },
+      async saveToProject(request, signal) {
+        const treadmill = ctx.get('treadmill')
+        if (treadmill === undefined) return err(request, treadmillAbsent())
+        const fs = ctx.get('fs')
+        if (fs === undefined) return err(request, editorAbsent())
+        const { sessionId, path, content } = request.payload
+        const projectPath = projectSkillPath(path)
+        if (projectPath === undefined) {
+          return err(request, { code: 'treadmill-denied', message: `"${path}" is not a skill or command; only those can live in a project`, details: {} })
+        }
+        try {
+          const target = await editorTarget(fs, await editorRoot(ctx, fs, sessionId, signal), projectPath, signal)
+          await fs.writeText(target, content, undefined, signal, editorPolicy(ctx, sessionId))
+          return ok(request, { path: projectPath })
         } catch (error: unknown) {
           return err(request, treadmillError(error))
         }

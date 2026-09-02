@@ -16,6 +16,8 @@ export interface TreadmillStageView {
   readonly gate: 'manual' | 'auto'
   readonly verdict: boolean
   readonly produces: readonly string[]
+  /** A disabled stage stays listed and is skipped. */
+  readonly enabled: boolean
 }
 
 /** One file of the installation, relative to its root. */
@@ -29,6 +31,8 @@ export interface TreadmillFileView {
 export interface TreadmillDescriptionView {
   readonly root: string
   readonly enabled: boolean
+  /** Where `stages` came from: the addressed project's `.spec/treadmill.yaml`, or the harness default table. */
+  readonly tableSource: 'project' | 'global'
   readonly stages: readonly TreadmillStageView[]
   /** Set when the stage table is unreadable or invalid; `stages` is then empty. */
   readonly pipelineError?: string
@@ -37,8 +41,12 @@ export interface TreadmillDescriptionView {
 
 /** Treadmill API: describe the installation and edit its files. */
 export interface TreadmillApi {
-  /** Describe the installation: root, enabled state, stage table, and file inventory. */
-  describe(request: RpcRequest<{}>, signal: AbortSignal): Promise<RpcResponse<TreadmillDescriptionView>>
+  /**
+   * Describe the installation: root, enabled state, stage table, and file
+   * inventory. With a `sessionId`, the stage table is the session's project
+   * table (`.spec/treadmill.yaml`) when that file exists.
+   */
+  describe(request: RpcRequest<{ sessionId?: string }>, signal: AbortSignal): Promise<RpcResponse<TreadmillDescriptionView>>
   /**
    * Read one installation file. Fails with `treadmill-denied` for a path
    * outside the root and `treadmill-not-found` for a missing file.
@@ -50,4 +58,23 @@ export interface TreadmillApi {
    * skill reaches the next request without a restart.
    */
   writeFile(request: RpcRequest<{ path: string; content: string }>, signal: AbortSignal): Promise<RpcResponse<{ path: string }>>
+  /**
+   * Switch one stage on or off, keeping the table's comments. With a
+   * `sessionId`, the session's project table is edited and created from the
+   * effective table when absent; without one, the harness default table is.
+   * Fails with `treadmill-not-found` for an id the table does not list.
+   */
+  setStageEnabled(
+    request: RpcRequest<{ sessionId?: string; id: string; enabled: boolean }>,
+    signal: AbortSignal,
+  ): Promise<RpcResponse<{ id: string; enabled: boolean; tableSource: 'project' | 'global' }>>
+  /**
+   * Save one skill or command into the session's project under `.dsh/skills`,
+   * where it outranks the harness copy for that project alone. Fails with
+   * `treadmill-denied` for any other installation path.
+   */
+  saveToProject(
+    request: RpcRequest<{ sessionId: string; path: string; content: string }>,
+    signal: AbortSignal,
+  ): Promise<RpcResponse<{ path: string }>>
 }

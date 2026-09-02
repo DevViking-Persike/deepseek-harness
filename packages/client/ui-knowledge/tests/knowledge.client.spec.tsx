@@ -61,6 +61,7 @@ function mount(overrides: Partial<KnowledgeSectionProps> = {}) {
     readTreadmillFile: overrides.readTreadmillFile ?? ((path: string) => Promise.resolve(`# ${path}\n`)),
     writeTreadmillFile: overrides.writeTreadmillFile ?? (() => Promise.resolve()),
     setTreadmillEnabled: overrides.setTreadmillEnabled ?? (() => Promise.resolve()),
+    saveTreadmillFileToProject: overrides.saveTreadmillFileToProject ?? ((path: string) => Promise.resolve(`.dsh/${path}`)),
     t: makeTranslate(zh),
   } as unknown as KnowledgeSectionProps
   return render(<KnowledgeSection {...props} />)
@@ -323,5 +324,34 @@ describe('Skills-treadmill creation', () => {
     expect(treadmillTemplate('integrations', 'a')?.path).toBe('integrations/a/README.md')
     expect(treadmillTemplate('esteira', 'a')).toBeUndefined()
     expect(treadmillTemplate('other', 'a')).toBeUndefined()
+  })
+})
+
+describe('Skills-treadmill save to project', () => {
+  it('saves a skill into the project and reports the project path', async () => {
+    const saves: [string, string][] = []
+    mount({ saveTreadmillFileToProject: (path, content) => { saves.push([path, content]); return Promise.resolve('.dsh/skills/discovery/SKILL.md') } })
+    fireEvent.click(screen.getByRole('button', { name: zh['tab.treadmill'] }))
+    await screen.findByText('skills/discovery/SKILL.md')
+    const buttons = screen.getAllByRole('button', { name: zh['edit'] })
+    const skillEdit = buttons[1]
+    if (skillEdit === undefined) throw new Error('no skill edit button')
+    fireEvent.click(skillEdit)
+    await screen.findByRole('textbox')
+    fireEvent.click(screen.getByRole('button', { name: zh['treadmill.saveToProject'] }))
+    expect(await screen.findByText(/\.dsh\/skills\/discovery\/SKILL\.md/)).toBeTruthy()
+    expect(saves).toEqual([['skills/discovery/SKILL.md', '# skills/discovery/SKILL.md\n']])
+  })
+
+  it('offers no project save for a rule', async () => {
+    mount()
+    fireEvent.click(screen.getByRole('button', { name: zh['tab.treadmill'] }))
+    await screen.findByText('rules/eng/01-file-size.md')
+    const buttons = screen.getAllByRole('button', { name: zh['edit'] })
+    const ruleEdit = buttons[2]
+    if (ruleEdit === undefined) throw new Error('no rule edit button')
+    fireEvent.click(ruleEdit)
+    await screen.findByRole('textbox')
+    expect(screen.queryByRole('button', { name: zh['treadmill.saveToProject'] })).toBeNull()
   })
 })

@@ -283,9 +283,11 @@ export class FakeApiClient implements IApiClient {
   }
 
   readonly treadmill: IApiClient['treadmill'] = {
-    describe: payload => this.record('treadmill.describe', payload, Promise.resolve(ok({ root: '/t', enabled: true, stages: [], files: [] }))),
+    describe: payload => this.record('treadmill.describe', payload, Promise.resolve(ok({ root: '/t', enabled: true, tableSource: 'global', stages: [], files: [] }))),
     readFile: payload => this.record('treadmill.readFile', payload, Promise.resolve(ok({ path: payload.path, content: '' }))),
     writeFile: payload => this.record('treadmill.writeFile', payload, Promise.resolve(ok({ path: payload.path }))),
+    setStageEnabled: payload => this.record('treadmill.setStageEnabled', payload, Promise.resolve(ok({ id: payload.id, enabled: payload.enabled, tableSource: 'global' }))),
+    saveToProject: payload => this.record('treadmill.saveToProject', payload, Promise.resolve(ok({ path: payload.path }))),
   }
 
   readonly docker: IApiClient['docker'] = {
