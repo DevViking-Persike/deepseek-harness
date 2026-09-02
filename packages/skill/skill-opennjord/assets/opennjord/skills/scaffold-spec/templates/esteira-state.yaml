@@ -1,0 +1,104 @@
+# esteira-state.yaml — CURSOR machine-readable da esteira de PROCESSO
+#
+# ⚠️  FONTE ÚNICA DE DECISÃO DO TICK. Quem decide "qual a próxima ação" é ESTE
+#     arquivo — por lookup, nunca por parse de prosa. O `STATE.md` é o diário
+#     narrativo humano (append); as marcas `✅` no `plano-de-sprints-NN.md` e
+#     `Status:` nas tasks são ESPELHOS write-only: o tick ESCREVE neles, mas
+#     NUNCA decide por eles.
+#
+#     Reconciliação `plano/task → yaml` acontece SÓ no bootstrap (quando este
+#     arquivo ainda não existe). Depois disso, o yaml manda; se divergir da
+#     prosa, o yaml vence.
+#
+# Gerado pelo `scaffold-spec` (Passo 1). Upsert-only — o tick sobrescreve os
+# campos; o histórico é o `STATE.md` + o `git log` dos ticks.
+#
+# FORMATO: este template documenta o schema 2 exatamente na ordem em que o
+# runtime regrava o arquivo. Toda chave abaixo existe no cursor serializado —
+# valores vazios saem como `null` (escalar) ou `[]` (lista), nunca ausentes.
+# Placeholders vêm SEMPRE entre aspas, pra manter o arquivo parseável mesmo
+# antes de alguém preencher.
+
+schema: 2
+
+# backlog autoritativo (path RELATIVO a `.spec/`, sem `../`) — o fan-in da
+# Discovery. Troque o `NN` pelo número da rodada.
+plano: discovery/plano-de-sprints-NN.md
+
+# sprint em execução (o `NN` do plano, ex.: "01-01"). null ⇒ o tick pega a
+# próxima linha SEM `✅` do plano e cria `.spec/sprints/sprint-NN-<tema>/` no 00s.
+sprint_ativa: null
+
+# etapa atual. Vocabulário do runtime (ordem canônica da esteira):
+#   00-discovery  — PRÉ-PLANO: rodada de discovery ainda aberta (bootstrap de
+#                   projeto recém-scaffoldado não trava aqui; PARK em humano:plano)
+#   plano         — consolidação da rodada no `plano-de-sprints-NN.md`
+#   00s           — discovery-de-sprint (aterra a linha do plano; NUNCA dá VERDICT)
+#   10a           — arquitetura design (gate; veredito autoral → parada humana)
+#   20            — desenvolvimento (1 task por tick)
+#   25            — review-codigo-subagents (executor; emite VERDICT)
+#   10b           — arquitetura review (gate; consome a 25)
+#   30-qa-rpa     — qa-rpa (executa a matriz)
+#   30-qa         — qa (julga a matriz)
+#   40-redteam    — redteam (executa a exploração dinâmica)
+#   40-seguranca  — seguranca (julga os achados)
+#   deploy        — transversal (produção ⇒ parada humana)
+#   done          — sprint fechado; o tick avança `sprint_ativa`
+etapa: 00-discovery
+
+# tentativas da etapa atual. Só aceita 1 ou 2 — reseta ao TROCAR de etapa.
+# 2ª reprovação de gate ⇒ awaiting: humano:<etapa>-2x (parada obrigatória).
+tentativa: 1
+
+# token de bloqueio de 1ª classe. Distingue "⬜ ainda não cheguei" de
+# "⬜ bloqueado esperando algo". null ⇒ livre pra executar.
+#   humano:<gate>     — humano:scaffold-mode | humano:plano | humano:10a |
+#                       humano:dev-convergencia | humano:aceite-risco |
+#                       humano:deploy-prod | humano:quota-suspeita |
+#                       humano:<etapa>-2x
+#   ambiente:<etapa>  — ambiente:qa | ambiente:seg (dev_server / alvo indisponível)
+#   ambiente:quota-ate-<ISO> — janela de quota com retomada automática
+awaiting: null
+
+# veredito da última etapa de gate, traduzido pro dialeto ÚNICO.
+#   PASS | FAIL | null   (AWAITING não é veredito — vira o campo `awaiting` acima)
+veredito: null
+
+# ISO-8601 (UTC) do último tick.
+atualizado: "2026-01-15T09:30:00Z"
+
+# identidade da execução, usada na chave idempotente do tick
+# (`<run_id>:<escopo>:<etapa>:<task>:<tentativa>`). Só aceita
+# [A-Za-z0-9-_.] — o seed gera `run-<uuid>`; num bootstrap manual, qualquer
+# valor estável serve.
+run_id: run-bootstrap
+
+# contador monotônico de escritas do cursor. Começa em 0; quem escreve incrementa.
+revision: 0
+
+# sprints derivadas do plano. Cada item: id, home (path repo-relativo do dir do
+# sprint) e status (pending | active | done). Vazio no bootstrap — o tick
+# preenche ao reconciliar o plano.
+#   - id: "<preencher: NN-MM>"
+#     home: "<preencher: .spec/sprints/sprint-NN-MM-tema>"
+#     status: pending
+backlog: []
+
+# tasks da sprint ATIVA. Cada item: id, path (arquivo da task), depends_on
+# (lista de ids) e status (pending | ready | delivered | blocked).
+#   - id: "<preencher: task-01-slug>"
+#     path: "<preencher: .spec/sprints/sprint-NN-MM-tema/tasks/task-01-slug.md>"
+#     depends_on: []
+#     status: pending
+tasks: []
+
+# pilha de retomada de gate reprovado. Cada frame: gate (etapa) + next_attempt
+# (sempre 2). Vazio quando nenhum gate está em 2ª tentativa.
+retry_stack: []
+
+# tick preparado e ainda não confirmado (fase `prepared`). null fora de execução.
+execution: null
+
+# recibo do último tick confirmado (chave, outcome, hashes, warnings).
+# null no bootstrap.
+last_receipt: null

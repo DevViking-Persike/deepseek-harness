@@ -1,0 +1,4 @@
+interface:
+  display_name: "QA"
+  short_description: "Gate de QA com validacao real"
+  default_prompt: "Use $qa para validar o incremento com criterios, regressao e smoke."

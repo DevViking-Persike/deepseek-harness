@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+"""Hook PreToolUse (Claude Code) — guarda de arquivos das runs njord/esteira.
+
+Instalado pela esteira-skills (scaffold-spec → templates/hooks/). Protege runs
+autônomas (etapas da esteira rodam com `--permission-mode bypassPermissions`
+num worktree) e sessões interativas com DUAS regras determinísticas:
+
+  1. NEGA (deny) leitura/escrita em paths sensíveis do usuário — chaves SSH,
+     credenciais AWS, keychain, `~/.config/njord/secrets.yaml`. Vale mesmo em
+     bypassPermissions (hooks disparam em todo modo de permissão).
+  2. PERGUNTA (ask) em ESCRITA fora do workspace (o cwd da sessão — projeto ou
+     worktree da esteira). Interativo: o Claude Code mostra o prompt pro dono
+     decidir; headless (`-p`): vira negação — o agente não escapa do worktree.
+     Escrita em diretórios temporários e no estado do harness (`~/.claude`)
+     continua liberada.
+
+Fora dessas regras o hook fica em SILÊNCIO (exit 0 sem output) — o fluxo normal
+de permissão do Claude Code decide. Fail-open: qualquer erro interno também sai
+em silêncio; um bug aqui NUNCA pode travar uma run.
+
+Registro (o scaffold copia este arquivo pro canônico `.opennjord/hooks/`;
+mesclar o bloco de `settings.hooks.json` no `.claude/settings.json`):
+  PreToolUse · matcher "Read|Write|Edit|MultiEdit|NotebookEdit" ·
+  command: python3 "${CLAUDE_PROJECT_DIR}/.opennjord/hooks/njord-ask-permission"
+
+Desligar pontualmente: NJORD_HOOK_MODE=off no ambiente da sessão.
+Somente stdlib python3 — sem dependências.
+"""
+
+import json
+import os
+import sys
+import tempfile
+
+WRITE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
+
+# Paths sensíveis: prefixos (relativos ao $HOME) sempre negados, leitura OU
+# escrita. Lista curta e inequívoca — falso positivo aqui bloqueia trabalho
+# legítimo, então só entra o que é credencial por definição.
+SENSITIVE_HOME_PREFIXES = (".ssh", ".aws", ".gnupg", ".netrc")
+SENSITIVE_EXACT_HOME = (os.path.join(".config", "njord", "secrets.yaml"),)
+SENSITIVE_ANYWHERE = ("/Keychains/",)
+
+
+def decision(kind: str, reason: str) -> None:
+    """Emite a decisão no formato de hook PreToolUse e encerra."""
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": kind,
+                    "permissionDecisionReason": reason,
+                }
+            }
+        )
+    )
+    sys.exit(0)
+
+
+def is_under(path: str, root: str) -> bool:
+    return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
+
+
+def sensitive(path: str, home: str) -> bool:
+    for prefix in SENSITIVE_HOME_PREFIXES:
+        if is_under(path, os.path.join(home, prefix)):
+            return True
+    for exact in SENSITIVE_EXACT_HOME:
+        if path == os.path.join(home, exact):
+            return True
+    return any(marker in path for marker in SENSITIVE_ANYWHERE)
+
+
+def allowed_outside_workspace(path: str, home: str) -> bool:
+    """Escritas fora do workspace que são sempre legítimas: tmp e ~/.claude."""
+    roots = [
+        os.path.realpath(tempfile.gettempdir()),
+        "/tmp",
+        "/private/tmp",
+        "/private/var/folders",
+        "/var/folders",
+        os.path.join(home, ".claude"),
+    ]
+    return any(is_under(path, os.path.realpath(r)) for r in roots)
+
+
+def main() -> None:
+    if os.environ.get("NJORD_HOOK_MODE", "").lower() == "off":
+        return
+
+    payload = json.load(sys.stdin)
+    tool_name = payload.get("tool_name", "")
+    tool_input = payload.get("tool_input") or {}
+    raw_path = tool_input.get("file_path") or tool_input.get("notebook_path")
+    if not raw_path:
+        return
+
+    home = os.path.realpath(os.path.expanduser("~"))
+    # realpath derrota `../` e symlink apontando pra fora; expanduser cobre `~`.
+    path = os.path.realpath(os.path.expanduser(str(raw_path)))
+
+    if sensitive(path, home):
+        decision(
+            "deny",
+            f"njord-ask-permission: {path} é um path sensível (credenciais/keychain) — "
+            "acesso negado pela guarda da esteira.",
+        )
+
+    if tool_name in WRITE_TOOLS:
+        workspace = os.path.realpath(payload.get("cwd") or os.getcwd())
+        if not is_under(path, workspace) and not allowed_outside_workspace(path, home):
+            decision(
+                "ask",
+                f"njord-ask-permission: escrita fora do workspace ({workspace}): {path}. "
+                "Em run autônoma da esteira isso é bloqueado; interativo, o dono decide.",
+            )
+    # Silêncio = segue o fluxo normal de permissão do Claude Code.
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        # Fail-open: bug/input inesperado no hook nunca trava a run.
+        sys.exit(0)

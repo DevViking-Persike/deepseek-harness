@@ -1,0 +1,4 @@
+interface:
+  display_name: "Discovery"
+  short_description: "Discovery em 3 modos: negócio, desenvolvimento, refatoração"
+  default_prompt: "Use $discovery para conduzir discovery antes da entrega. 3 modos com seletor — negocio | dev | refatoracao (ordem canônica 1→2→3) — que terminam num Plano de Sprints aprovado."

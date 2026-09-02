@@ -1,0 +1,4 @@
+interface:
+  display_name: "Redteam"
+  short_description: "Pentest defensivo local/dev"
+  default_prompt: "Use $redteam para executar pentest autorizado em local ou dev."

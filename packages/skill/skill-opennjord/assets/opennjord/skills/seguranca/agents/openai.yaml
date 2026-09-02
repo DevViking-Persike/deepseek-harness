@@ -1,0 +1,4 @@
+interface:
+  display_name: "Seguranca"
+  short_description: "Gate de seguranca da esteira"
+  default_prompt: "Use $seguranca para rodar o gate de seguranca antes do release."

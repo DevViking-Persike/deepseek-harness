@@ -354,6 +354,10 @@
       name: '@deepseek-ai/dsh-skill-badge'
       disabled: true
 
+    # The OpenNjord Esteira method, served by the harness to every project.
+    - id: skill-opennjord
+      name: '@deepseek-ai/dsh-skill-opennjord'
+
     - id: tool-skill
       name: '@deepseek-ai/dsh-tool-skill'
 

@@ -190,6 +190,7 @@
     { "path": "./packages/skill/skill" },
     { "path": "./packages/skill/skill-badge" },
     { "path": "./packages/skill/skill-filesystem" },
+    { "path": "./packages/skill/skill-opennjord" },
     { "path": "./packages/skill/tool-skill" },
     { "path": "./packages/interaction/tool-ask-user" },
     { "path": "./packages/context/agent-instructions" },

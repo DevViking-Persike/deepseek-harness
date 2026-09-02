@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scaffold Spec"
+  short_description: "Scaffold da esteira .spec"
+  default_prompt: "Use $scaffold-spec para montar a base .spec e a esteira do projeto."

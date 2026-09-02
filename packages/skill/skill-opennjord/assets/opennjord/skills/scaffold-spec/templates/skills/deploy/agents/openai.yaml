@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deploy"
+  short_description: "Runbook de deploy e smoke"
+  default_prompt: "Use $deploy para subir o projeto no ambiente alvo com smoke tests."

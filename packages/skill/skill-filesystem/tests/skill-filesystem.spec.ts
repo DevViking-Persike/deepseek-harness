@@ -178,7 +178,6 @@ describe('FileSystemSkillProvider', () => {
     await writeSkill(join(home, '.dsh/skills'), 'same', 'user dsh skill')
     await writeSkill(custom, 'same', 'custom skill')
     await writeSkill(join(project, '.agents/skills'), 'same', 'project agents skill')
-    await writeSkill(join(project, '.opennjord/skills'), 'opennjord-only', 'OpenNjord project skill')
     await writeSkill(join(project, '.dsh/skills'), 'same', 'project dsh skill')
     await writeSkill(custom, 'custom-only', 'custom only')
     await writeSkill(join(home, '.dsh/skills/.system'), 'hidden-system', 'hidden system')
@@ -192,11 +191,9 @@ describe('FileSystemSkillProvider', () => {
     expect(skills.map(skill => skill.name)).toEqual([
       'bundled-only',
       'custom-only',
-      'opennjord-only',
       'same',
     ])
     expect(skills.find(skill => skill.name === 'custom-only')?.description).toBe('custom only')
-    expect(skills.find(skill => skill.name === 'opennjord-only')?.description).toBe('OpenNjord project skill')
     expect(skills.find(skill => skill.name === 'same')?.description).toBe('project dsh skill')
     expect(skills.find(skill => skill.name === 'same')?.source).toBe('project-dsh')
     expect(skills.find(skill => skill.name === 'hidden-system')).toBeUndefined()

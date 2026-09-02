@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arquitetura"
+  short_description: "Gate de arquitetura da esteira"
+  default_prompt: "Use $arquitetura para rodar o gate de design ou review do incremento."

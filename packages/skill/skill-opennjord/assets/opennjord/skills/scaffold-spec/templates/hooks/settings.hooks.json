@@ -1,0 +1,37 @@
+{
+  "//": "Hooks recomendados para Claude Code na base .spec/. MESCLE isto no .claude/settings.json do projeto (não substitua o arquivo inteiro). Não é auto-aplicado — opt-in. tools/ NÃO é symlinkado (vive só em .opennjord/) — os comandos usam ${CLAUDE_PROJECT_DIR} (placeholder oficial, ver doc de hooks) pra apontar direto pro canônico.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.opennjord/hooks/njord-ask-permission\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.opennjord/tools/spec-check.sh\" >/dev/null 2>&1 || echo '⚠️ spec-check falhou — rode: bash .opennjord/tools/spec-check.sh'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty' 2>/dev/null); case \"$f\" in *\".spec/\"*) bash \"${CLAUDE_PROJECT_DIR}/.opennjord/tools/spec-check.sh\" >/dev/null 2>&1 || echo '⚠️ link/estrutura quebrada no .spec — bash .opennjord/tools/spec-check.sh';; esac"
+          }
+        ]
+      }
+    ]
+  }
+}

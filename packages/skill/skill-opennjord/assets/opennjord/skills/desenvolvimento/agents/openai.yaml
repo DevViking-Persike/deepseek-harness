@@ -1,0 +1,4 @@
+interface:
+  display_name: "Desenvolvimento"
+  short_description: "Implementacao guiada pela spec"
+  default_prompt: "Use $desenvolvimento para implementar o incremento conforme spec e plano aprovado."

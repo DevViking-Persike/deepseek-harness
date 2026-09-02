@@ -1,0 +1,4 @@
+interface:
+  display_name: "QA RPA"
+  short_description: "RPA Playwright para QA real"
+  default_prompt: "Use $qa-rpa para criar e rodar uma RPA de QA front e back."

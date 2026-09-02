@@ -245,7 +245,6 @@ export class FileSystemSkillProvider implements SkillProvider {
       roots.push(
         { path: join(projectRoot, '.dsh/skills'), source: 'project-dsh', rank: PROJECT_DSH_RANK, projectRoot },
         { path: join(projectRoot, '.agents/skills'), source: 'project-agents', rank: PROJECT_AGENTS_RANK, projectRoot },
-        { path: join(projectRoot, '.opennjord/skills'), source: 'project-agents', rank: PROJECT_AGENTS_RANK - 1, projectRoot },
       )
     }
     roots.push(...this.customSkillDirs.map(path => ({ path, source: 'custom' as const, rank: CUSTOM_RANK })))
