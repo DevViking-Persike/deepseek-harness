@@ -13,8 +13,17 @@
   color: var(--dsw-alias-label-primary);
 }
 .empty {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  max-width: 62ch;
   padding: 32px 16px;
   color: var(--dsw-alias-label-secondary);
+}
+.absent {
+  margin: 0;
+  line-height: 1.5;
 }
 .error {
   margin: 0;

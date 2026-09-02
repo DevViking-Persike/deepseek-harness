@@ -1,9 +1,12 @@
 /** Esteira view dictionaries. */
+/** Locale namespace of the Esteira view. */
 export const NS = 'esteira'
+/** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'view.esteira': '流水线',
   title: 'OpenNjord 流水线',
-  absent: '此项目尚未安装 OpenNjord 流水线：需要 .opennjord/skills 和 .spec/esteira-state.yaml。',
+  absent: '此项目尚无流水线游标 .spec/esteira-state.yaml。安装会在项目中创建 .spec/ 和 docs/adrs/；方法本身由 harness 提供。',
+  install: '在此项目安装流水线', installing: '安装中…', installFailed: '无法提交安装：{reason}',
   loadFailed: '无法读取流水线游标：{reason}',
   run: '运行当前阶段', runStage: '运行此阶段', running: '运行中…', runFailed: '无法提交阶段：{reason}',
   sprint: 'Sprint', runId: '运行', revision: '修订', updatedAt: '更新于', progress: '进度',
@@ -19,13 +22,16 @@ export const zh = {
   sprints: 'Sprints', sprintsCount: '{count} 个 sprint', noSprints: '游标没有 backlog。', backlogDone: '已完成', backlogPending: '待处理',
   usage: '会话用量', input: '输入', output: '输出', cacheRead: '缓存读取', cacheWrite: '缓存写入', tools: '工具调用',
   models: '模型活动', noModelActivity: '此会话尚无已完成的模型步骤。',
-  sourceNote: '阶段方法来自已安装的 Skills；状态仅来自 .spec/esteira-state.yaml。',
+  sourceNote: '阶段方法由 harness 的 OpenNjord skills 提供；状态仅来自项目的 .spec/esteira-state.yaml。',
 } as const
+/** The Esteira dictionary key set. */
 export type EsteiraKey = keyof typeof zh
+/** English dictionary. */
 export const en: Record<EsteiraKey, string> = {
   'view.esteira': 'Esteira',
   title: 'OpenNjord pipeline',
-  absent: 'This project has no OpenNjord pipeline installation: it needs .opennjord/skills and .spec/esteira-state.yaml.',
+  absent: 'This project has no pipeline cursor at .spec/esteira-state.yaml. Installing creates .spec/ and docs/adrs/ in the project; the method itself comes from the harness.',
+  install: 'Install the Esteira in this project', installing: 'Installing…', installFailed: 'The installation could not be submitted: {reason}',
   loadFailed: 'The Esteira cursor could not be read: {reason}',
   run: 'Run current stage', runStage: 'Run this stage', running: 'Running…', runFailed: 'The stage could not be submitted: {reason}',
   sprint: 'Sprint', runId: 'Run', revision: 'Revision', updatedAt: 'Updated', progress: 'Progress',
@@ -41,5 +47,5 @@ export const en: Record<EsteiraKey, string> = {
   sprints: 'Sprints', sprintsCount: '{count} sprints', noSprints: 'The cursor has no backlog.', backlogDone: 'done', backlogPending: 'pending',
   usage: 'Session usage', input: 'Input', output: 'Output', cacheRead: 'Cache read', cacheWrite: 'Cache write', tools: 'Tool calls',
   models: 'Model activity', noModelActivity: 'This session has no completed model steps yet.',
-  sourceNote: 'Stage methods come from the installed Skills; state comes only from .spec/esteira-state.yaml.',
+  sourceNote: 'Stage methods come from the OpenNjord skills the harness ships; state comes only from the project\'s .spec/esteira-state.yaml.',
 }

@@ -5,7 +5,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { EsteiraView } from './EsteiraView.tsx'
 import { en, NS, zh, type EsteiraKey } from './locales.ts'
-import { parseCursor, stagePrompt, type EsteiraCursor, type StageSpec } from './stages.ts'
+import { INSTALL_PROMPT, parseCursor, stagePrompt, type EsteiraCursor, type StageSpec } from './stages.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap { esteira: EsteiraKey }
@@ -17,6 +17,12 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-esteira: dictionaries')
   const api = (ctx.get('connection') as ConnectionHandle).api
   const sessions = ctx.get('sessions') as ISessions
+  const submit = async (id: SessionId, text: string) => {
+    const session = sessions.binding(id)?.session
+    if (session === undefined) throw new Error('the current Session is unavailable')
+    const result = await session.prompt([{ type: 'text', text }], 'queue')
+    if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
+  }
   ctx.slots.inject('conversation.view', () => ctx.slots.register({
     name: 'conversation.view', id: 'esteira', order: 30, locale: NS,
     label: () => ctx.locale.bind(NS)('view.esteira'),
@@ -29,12 +35,8 @@ export function apply(ctx: ClientContext): void {
         }
         return parseCursor(response.result.value.content)
       },
-      runStage: async (id: SessionId, stage: StageSpec, cursor: EsteiraCursor) => {
-        const session = sessions.binding(id)?.session
-        if (session === undefined) throw new Error('the current Session is unavailable')
-        const result = await session.prompt([{ type: 'text', text: stagePrompt(stage, cursor) }], 'queue')
-        if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
-      },
+      runStage: (id: SessionId, stage: StageSpec, cursor: EsteiraCursor) => submit(id, stagePrompt(stage, cursor)),
+      installEsteira: (id: SessionId) => submit(id, INSTALL_PROMPT),
     }),
   }, EsteiraView))
 }

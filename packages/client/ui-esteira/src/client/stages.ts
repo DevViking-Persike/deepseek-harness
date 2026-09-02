@@ -158,3 +158,9 @@ export function stagePrompt(spec: StageSpec, cursor: EsteiraCursor): string {
     + 'Use as Skills instaladas e preserve todos os gates, artefatos, receipts e paradas humanas do método. '
     + 'Não avance outra etapa e não declare conclusão sem validar os artefatos canônicos.'
 }
+
+/** The prompt that installs the Esteira into a project that has no cursor yet. */
+export const INSTALL_PROMPT = '/scaffold-spec criar Instale a Esteira OpenNjord neste projeto criando somente .spec/ '
+  + '(MANIFEST.md, STATE.md, esteira-state.yaml, sprints/README.md, sprints/RUNBOOK.md, reference/README.md) e docs/adrs/. '
+  + 'As skills, rules, commands e agents já vêm do DeepSeek Harness: não crie .opennjord/, .claude/, .codex/, .agents/, '
+  + 'symlinks nem CLAUDE.md roteador. Não sobrescreva arquivos existentes sem confirmar.'

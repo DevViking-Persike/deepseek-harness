@@ -14,6 +14,8 @@ export interface EsteiraViewInjected {
   loadCursor: (signal: AbortSignal) => Promise<EsteiraCursor | null>
   /** Submit one stage's Skill prompt to the Session queue. */
   runStage: (sessionId: SessionId, stage: StageSpec, cursor: EsteiraCursor) => Promise<void>
+  /** Submit the scaffold prompt that creates `.spec/` and `docs/adrs/` in the project. */
+  installEsteira: (sessionId: SessionId) => Promise<void>
 }
 type Props = ConvViewProps & PropsLocale<'esteira'> & InjectFace<EsteiraViewInjected>
 
@@ -29,7 +31,7 @@ function describe(reason: unknown): string {
  * @param props - conversation view props plus the injected cursor and run operations.
  * @returns the view.
  */
-export function EsteiraView({ sessionId, useSession, useProjection, loadCursor, runStage, t }: Props) {
+export function EsteiraView({ sessionId, useSession, useProjection, loadCursor, runStage, installEsteira, t }: Props) {
   const session = useSession(snapshot => snapshot)
   const usage = useProjection('tokenUsage')
   const [cursor, setCursor] = useState<EsteiraCursor | null | undefined>(undefined)
@@ -49,7 +51,25 @@ export function EsteiraView({ sessionId, useSession, useProjection, loadCursor, 
   const assistants = useMemo(() => session.nodes.filter(node => node.kind === 'assistant'), [session.nodes])
   const toolCount = useMemo(() => session.nodes.reduce((count, node) => node.kind === 'tool-result' ? count + 1 : count, 0), [session.nodes])
   if (loadError !== undefined) return <div className={css.empty}>{t('loadFailed', { reason: loadError })}</div>
-  if (cursor === null) return <div className={css.empty}>{t('absent')}</div>
+  if (cursor === null) {
+    const install = () => {
+      if (busy) return
+      setBusy(true)
+      setRunError(undefined)
+      void installEsteira(sessionId)
+        .catch((reason: unknown) => { setRunError(describe(reason)) })
+        .finally(() => { setBusy(false) })
+    }
+    return (
+      <div className={css.empty}>
+        <p className={css.absent}>{t('absent')}</p>
+        <button type="button" className={css.primary} disabled={busy || session.running} onClick={install}>
+          {busy || session.running ? t('installing') : t('install')}
+        </button>
+        {runError !== undefined && <p className={css.error} role="alert">{t('installFailed', { reason: runError })}</p>}
+      </div>
+    )
+  }
   if (cursor === undefined) return <div className={css.empty}>…</div>
   const current = stages.find(stage => stage.current)
   const selected = stages.find(stage => stage.id === selectedId)
