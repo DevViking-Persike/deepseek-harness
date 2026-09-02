@@ -20,6 +20,7 @@ export type KnowledgeKey =
   | 'origin.composition'
   | 'origin.explain'
   | 'open'
+  | 'edit'
   | 'back'
   | 'unavailable'
   | 'filter'
@@ -48,6 +49,7 @@ export const zh: Record<KnowledgeKey, string> = {
   'origin.composition': '内置',
   'origin.explain': '「项目」随仓库提交，「全局」只属于这台机器，「内置」来自当前组合。',
   'open': '查看',
+  'edit': '编辑',
   'back': '返回',
   'unavailable': '此环境未挂载文件系统，无法读取文件。',
   'filter': '按名称筛选…',
@@ -69,7 +71,8 @@ export const en: Record<KnowledgeKey, string> = {
   'origin.user': 'global',
   'origin.composition': 'built in',
   'origin.explain': 'A project skill is committed with the repository, a global one belongs to this machine alone, and a built-in one comes from the running composition.',
-  'open': 'Open',
+  'open': 'View',
+  'edit': 'Edit',
   'back': 'Back',
   'unavailable': 'No filesystem is mounted here, so files cannot be read.',
   'filter': 'Filter by name…',

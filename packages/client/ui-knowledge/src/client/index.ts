@@ -81,6 +81,7 @@ export function apply(ctx: ClientContext): void {
         ...skill.whenToUse === undefined ? {} : { whenToUse: skill.whenToUse },
         modelInvocable: skill.modelInvocable,
         source: skill.source,
+        ...skill.path === undefined ? {} : { path: skill.path },
       }))
     },
     listDir: async (path, signal) => {
@@ -100,6 +101,10 @@ export function apply(ctx: ClientContext): void {
       }, signal)
       if (!response.result.ok) throw knowledgeFailure(response.result.error)
       return { content: response.result.value.content }
+    },
+    editFile: async (path, signal) => {
+      const response = await api.host.openPath({ path }, signal)
+      if (!response.result.ok) throw knowledgeFailure(response.result.error)
     },
   }
 

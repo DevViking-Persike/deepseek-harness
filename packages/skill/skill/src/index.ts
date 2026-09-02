@@ -68,6 +68,8 @@ export interface SkillSummary {
   readonly provider: string
   /** Provider-specific base for relative resources. */
   readonly resourceBase?: SkillResourceBase
+  /** Absolute source file when the provider exposes an editable filesystem skill. */
+  readonly path?: string
 }
 
 /** Provider catalog entry used by the registry to merge and later load skills. */
@@ -768,7 +770,7 @@ function validateDefinition(skill: SkillDefinition): void {
 }
 
 function toSummary(skill: SkillDefinition | SkillCandidate): SkillSummary {
-  const { name, description, whenToUse, invocation, source, provider, resourceBase } = skill
+  const { name, description, whenToUse, invocation, source, provider, resourceBase, path } = skill
   return {
     name,
     description,
@@ -777,6 +779,7 @@ function toSummary(skill: SkillDefinition | SkillCandidate): SkillSummary {
     source,
     provider,
     ...resourceBase !== undefined ? { resourceBase } : {},
+    ...path !== undefined ? { path } : {},
   }
 }
 

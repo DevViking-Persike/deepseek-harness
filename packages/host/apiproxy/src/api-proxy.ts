@@ -3631,6 +3631,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
               modelInvocable: skill.invocation.modelInvocable,
               source: skill.source,
               provider: skill.provider,
+              ...skill.path === undefined ? {} : { path: skill.path },
             })),
           })
         } catch (error: unknown) {

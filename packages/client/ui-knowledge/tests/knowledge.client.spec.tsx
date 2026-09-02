@@ -45,6 +45,7 @@ function mount(overrides: Partial<KnowledgeSectionProps> = {}) {
       })
       : Promise.reject(new Error('ENOENT'))),
     readFile: overrides.readFile ?? (() => Promise.resolve({ content: '# A decision\n' })),
+    editFile: overrides.editFile ?? (() => Promise.resolve()),
     t: makeTranslate(zh),
   } as unknown as KnowledgeSectionProps
   return render(<KnowledgeSection {...props} />)

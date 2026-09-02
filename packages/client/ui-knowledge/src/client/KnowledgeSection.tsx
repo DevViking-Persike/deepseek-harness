@@ -26,6 +26,8 @@ export interface KnowledgeSkill {
   readonly modelInvocable: boolean
   /** Registry source id (`project-agents`, `user-agents`, `custom`, …). */
   readonly source: string
+  /** Absolute source file when the skill provider exposes one. */
+  readonly path?: string
 }
 
 /** One Markdown document under a knowledge directory. */
@@ -46,6 +48,8 @@ export interface KnowledgeInjected {
   }>
   /** Read one workspace file as text. */
   readFile: (path: string, signal: AbortSignal) => Promise<{ content: string }>
+  /** Open one source file in the host operating system's configured editor. */
+  editFile: (path: string, signal: AbortSignal) => Promise<void>
 }
 
 /** Which pane is showing. */
@@ -108,7 +112,7 @@ const NOT_A_RECORD = new Set(['AGENTS.md', 'CLAUDE.md', 'README.md'])
  * @param props - the injected wire calls and `t`.
  * @returns the three-pane section.
  */
-export function KnowledgeSection({ listSkills, listDir, readFile, t }: KnowledgeSectionProps) {
+export function KnowledgeSection({ listSkills, listDir, readFile, editFile, t }: KnowledgeSectionProps) {
   const [pane, setPane] = useState<Pane>('skills')
   const [skills, setSkills] = useState<Loaded<KnowledgeSkill>>({ kind: 'loading' })
   const [docs, setDocs] = useState<Loaded<KnowledgeDoc>>({ kind: 'loading' })
@@ -179,6 +183,13 @@ export function KnowledgeSection({ listSkills, listDir, readFile, t }: Knowledge
     )
   }, [readFile])
 
+  const edit = useCallback((path: string) => {
+    const controller = new AbortController()
+    void editFile(path, controller.signal).catch((error: unknown) => {
+      setOpen({ name: path, body: failureText(error) })
+    })
+  }, [editFile])
+
   if (open !== undefined) {
     return (
       <div className={css.root}>
@@ -232,6 +243,11 @@ export function KnowledgeSection({ listSkills, listDir, readFile, t }: Knowledge
                         <span className={css.flag}>
                           {skill.modelInvocable ? t('skills.modelInvocable') : t('skills.userOnly')}
                         </span>
+                        {skill.path !== undefined && (
+                          <button type="button" className={css.openButton} onClick={() => { if (skill.path !== undefined) edit(skill.path) }}>
+                            {t('edit')}
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -262,10 +278,15 @@ export function KnowledgeSection({ listSkills, listDir, readFile, t }: Knowledge
                     .filter(doc => filter === '' || doc.name.toLowerCase().includes(filter.toLowerCase()))
                     .map(doc => (
                       <li key={doc.path} className={css.row}>
-                        <span className={css.name}>{doc.name}</span>
-                        <button type="button" className={css.openButton} onClick={() => { show(doc) }}>
-                          {t('open')}
-                        </button>
+                        <span className={css.name} title={doc.name}>{doc.name}</span>
+                        <span className={css.rowActions}>
+                          <button type="button" className={css.openButton} onClick={() => { show(doc) }}>
+                            {t('open')}
+                          </button>
+                          <button type="button" className={css.openButton} onClick={() => { edit(doc.path) }}>
+                            {t('edit')}
+                          </button>
+                        </span>
                       </li>
                     ))}
                 </ul>

@@ -28,6 +28,8 @@ export interface SkillEntry {
   readonly source: string
   /** The provider that supplied the row, for a composition mounting several. */
   readonly provider: string
+  /** Absolute source file when this provider exposes an editable filesystem skill. */
+  readonly path?: string
 }
 
 /**
