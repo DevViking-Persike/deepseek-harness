@@ -6,7 +6,9 @@ import { WELCOME_NOTICE_COPY } from '../onboarding-copy.ts'
 export const en = {
   nav: 'Models',
   title: 'Models',
-  intro: 'Enter your API keys to use models from the following providers.',
+  intro: 'Configure API-key providers and review model routes managed by installed plugins.',
+  pluginManaged: 'Managed by installed plugin',
+  providerActive: 'Provider active',
   edit: 'Edit',
   editProvider: 'Edit {provider}',
   remove: 'Delete',
@@ -108,7 +110,9 @@ export type ModelsKey = keyof typeof en
 export const zh: { [Key in keyof typeof en]: string } = {
   nav: '模型',
   title: '模型',
-  intro: '填入各提供方的 API 密钥即可使用其模型。',
+  intro: '配置 API 密钥提供方，并查看已安装插件管理的模型路由。',
+  pluginManaged: '由已安装插件管理',
+  providerActive: '提供方已启用',
   edit: '编辑',
   editProvider: '编辑 {provider}',
   remove: '删除',

@@ -273,6 +273,7 @@ function Loaded({ injected }: { injected: ModelsSectionFace }): ReactNode {
   // step: whether the user already has a provider to talk to.
   const anyUsable = state.rows.some(providerUsable)
   const configured = state.rows.filter(row => row.configured)
+  const pluginManaged = state.rows.filter(row => row.entry.active && row.entry.settingsNs === '')
   const addable = state.rows.filter(row => !row.configured && row.entry.settingsNs !== '')
   const addTarget = adding ? editing : undefined
   const addNamespace = addTarget === undefined ? undefined : state.namespaces.get(addTarget.settingsNs)
@@ -402,6 +403,22 @@ function Loaded({ injected }: { injected: ModelsSectionFace }): ReactNode {
             </li>
           )
         })}
+        {pluginManaged.map(row => (
+          <li key={row.entry.provider} className={styles['rowCard']}>
+            <div className={styles['rowHead']}>
+              <span className={styles['rowIdentity']}>
+                <span className={styles['rowName']}>{row.entry.displayName}</span>
+                <span
+                  className={`${styles['credentialDot']} ${styles['credentialDotConfigured']}`}
+                  role="img"
+                  aria-label={t('providerActive')}
+                  title={t('providerActive')}
+                />
+              </span>
+              <span className={styles['rowTag']}>{t('pluginManaged')}</span>
+            </div>
+          </li>
+        ))}
       </ul>
       <div className={styles['addBlock']}>
         {addTarget !== undefined && addNamespace !== undefined
