@@ -35,6 +35,9 @@ export interface TreadmillViewInjected {
 }
 type Props = ConvViewProps & PropsLocale<'treadmill'> & InjectFace<TreadmillViewInjected>
 
+/** How often the cursor is re-read while a run is in flight. */
+const CURSOR_POLL_MS = 5000
+
 function numeric(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
@@ -72,10 +75,17 @@ export function TreadmillView({
   const [runError, setRunError] = useState<string | undefined>()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // The cursor is re-read when a run starts or ends and, while a run is in
+  // flight, every few seconds: the Skill moves the cursor mid-turn.
   useEffect(() => {
     const abort = new AbortController()
-    void loadCursor(abort.signal).then(setCursor).catch((reason: unknown) => { setLoadError(describe(reason)) })
-    return () => { abort.abort() }
+    const read = () => { void loadCursor(abort.signal).then(setCursor).catch((reason: unknown) => { setLoadError(describe(reason)) }) }
+    read()
+    const timer = session.running ? setInterval(read, CURSOR_POLL_MS) : undefined
+    return () => {
+      abort.abort()
+      if (timer !== undefined) clearInterval(timer)
+    }
   }, [loadCursor, session.running])
   const stages = useMemo(
     () => cursor === null || cursor === undefined || installation === undefined

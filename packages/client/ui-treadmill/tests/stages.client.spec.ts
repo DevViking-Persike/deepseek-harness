@@ -118,3 +118,19 @@ describe('disabled stages', () => {
     expect(stagePrompt(spec, cursor)).not.toContain('DESLIGADAS')
   })
 })
+
+describe('a run started from a disabled cursor stage', () => {
+  const cursor = { ...parseCursor(CURSOR), stage: '10a' }
+  const table = STAGES.map(stage => stage.id === '10a' ? { ...stage, enabled: false } : stage)
+
+  it('shows the next enabled stage as running until the Skill moves the cursor', () => {
+    const stages = projectStages(cursor, true, table)
+    expect(stages.find(stage => stage.id === '10a')?.status).toBe('skipped')
+    expect(stages.find(stage => stage.id === '20')?.status).toBe('running')
+    expect(stages.find(stage => stage.id === '25')?.status).toBe('pending')
+    expect(pipelineStatus(stages)).toBe('running')
+    const idle = projectStages(cursor, false, table)
+    expect(idle.find(stage => stage.id === '20')?.status).toBe('pending')
+    expect(runnableStage(idle)?.id).toBe('20')
+  })
+})

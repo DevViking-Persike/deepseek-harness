@@ -106,12 +106,18 @@ export interface StageView extends StageSpec {
 export function projectStages(cursor: TreadmillCursor, running: boolean, table: readonly StageSpec[] = STAGES): StageView[] {
   const currentIndex = table.findIndex(stage => stage.id === cursor.stage)
   const rejected = typeof cursor.verdict === 'string' && /^reprov/i.test(cursor.verdict)
+  // A run started from a disabled cursor stage executes the next enabled one,
+  // and the Skill records the move only when it finishes; show that stage as
+  // running meanwhile instead of pending.
+  const executingIndex = running && currentIndex >= 0 && table[currentIndex]?.enabled === false
+    ? table.findIndex((stage, index) => index > currentIndex && stage.enabled !== false)
+    : currentIndex
   return table.map((spec, index) => {
     const current = index === currentIndex
     const status: StageStatus = spec.enabled === false ? 'skipped'
       : cursor.stage === 'done' || (currentIndex >= 0 && index < currentIndex) ? 'done'
-        : !current ? 'pending'
-          : running ? 'running'
+        : running && index === executingIndex ? 'running'
+          : !current ? 'pending'
             : rejected ? 'error'
               : spec.gate === 'gated' ? 'awaiting-gate' : 'awaiting-user'
     return { ...spec, index, status, current }
@@ -124,6 +130,7 @@ export function projectStages(cursor: TreadmillCursor, running: boolean, table: 
  * @returns the pipeline status.
  */
 export function pipelineStatus(stages: readonly StageView[]): PipelineStatus {
+  if (stages.some(stage => stage.status === 'running')) return 'running'
   const current = stages.find(stage => stage.current)
   if (current === undefined) return stages.every(stage => stage.status === 'done' || stage.status === 'skipped') ? 'done' : 'awaiting-user'
   switch (current.status) {
